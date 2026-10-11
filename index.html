@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Built with Claude</title>
+<meta name="description" content="A running log of the things I've built with Claude.">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --text: #1d1b18;
+    --muted: #6b665d;
+    --border: #e4e0d6;
+    --accent: #c4552d;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141311;
+      --surface: #1d1c19;
+      --text: #ece8df;
+      --muted: #a29d92;
+      --border: #2f2d29;
+      --accent: #e87a52;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 56px 16px 64px; }
+
+  header { margin-bottom: 40px; }
+  .eyebrow {
+    font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 8px;
+  }
+  h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.1; margin: 0 0 12px; letter-spacing: -.02em; }
+  header p { color: var(--muted); max-width: 600px; margin: 0; font-size: 18px; }
+
+  .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+  .card {
+    display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; box-shadow: var(--shadow);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover { transform: translateY(-2px); }
+
+  .thumb { height: 150px; display: grid; place-items: center; position: relative; overflow: hidden; }
+  .thumb svg { width: 100%; height: 100%; display: block; }
+
+  .body { padding: 18px 20px 20px; display: flex; flex-direction: column; flex: 1; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tag {
+    font-size: 12px; padding: 2px 9px; border-radius: 99px;
+    border: 1px solid var(--border); color: var(--muted);
+  }
+  .card h2 { font-size: 20px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .card p { color: var(--muted); margin: 0 0 16px; font-size: 15px; }
+  .links { margin-top: auto; display: flex; gap: 14px; flex-wrap: wrap; }
+  .links a {
+    color: var(--accent); font-weight: 600; font-size: 15px; text-decoration: none;
+  }
+  .links a:hover { text-decoration: underline; }
+
+  footer { margin-top: 48px; color: var(--muted); font-size: 14px; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Side projects</p>
+    <h1>Built with Claude</h1>
+    <p>A running log of the small things I've made with Claude: games, learning tools, experiments.</p>
+  </header>
+
+  <main class="grid">
+
+    <!-- ===== Neon Muncher ===== -->
+    <article class="card">
+      <div class="thumb" style="background:#05020d">
+        <svg viewBox="0 0 300 150" aria-hidden="true">
+          <defs>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <rect x="14" y="14" width="272" height="122" rx="10" fill="none" stroke="#2de2e6" stroke-width="2" filter="url(#glow)"/>
+          <g fill="#fff7b0" filter="url(#glow)">
+            <circle cx="140" cy="75" r="3"/><circle cx="165" cy="75" r="3"/><circle cx="190" cy="75" r="3"/>
+            <circle cx="248" cy="75" r="7"/>
+          </g>
+          <path d="M100 75 L124 61 A28 28 0 1 0 124 89 Z" transform="translate(-24 0)" fill="#ffe94d" filter="url(#glow)"/>
+          <g filter="url(#glow)">
+            <path d="M206 92 v-22 a12 12 0 0 1 24 0 v22 l-4 -4 -4 4 -4 -4 -4 4 -4 -4 z" fill="#ff2d55"/>
+            <circle cx="213" cy="71" r="3" fill="#fff"/><circle cx="223" cy="71" r="3" fill="#fff"/>
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="tags"><span class="tag">Game</span><span class="tag">HTML5 Canvas</span><span class="tag">Mobile-friendly</span></div>
+        <h2>Neon Muncher</h2>
+        <p>A neon-styled Pac-Man–like arcade game in a single HTML file. Four ghosts with their own personalities, power pellets, fruit, particles, and a saved high score. Plays with keyboard or touch.</p>
+        <div class="links">
+          <a href="pacman-by-claude/">Play →</a>
+          <a href="https://github.com/84piranhas/pacman-by-claude">Source</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- ===== Cahier de maths ===== -->
+    <article class="card">
+      <div class="thumb" style="background:linear-gradient(135deg,#e8f0fb,#d3e2f7)">
+        <svg viewBox="0 0 300 150" aria-hidden="true">
+          <g stroke="#9fb9df" stroke-width="1">
+            <path d="M0 30H300M0 55H300M0 80H300M0 105H300M0 130H300"/>
+          </g>
+          <path d="M40 0V150" stroke="#e58a8a" stroke-width="1.5"/>
+          <path d="M70 120 Q 120 10 170 70 T 270 40" fill="none" stroke="#2f5fa8" stroke-width="3" stroke-linecap="round"/>
+          <text x="62" y="52" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#1f3f73">f(x) = x² − 3x</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="tags"><span class="tag">Learning</span><span class="tag">Maths</span><span class="tag">Première</span></div>
+        <h2>Cahier de maths — Première</h2>
+        <p>An interactive revision notebook for my daughter's Première maths course: key lessons, worked examples and practice exercises, chapter by chapter.</p>
+        <div class="links">
+          <a href="cahiers/maths-premiere.html">Open the notebook →</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- ===== Cahier de SES ===== -->
+    <article class="card">
+      <div class="thumb" style="background:linear-gradient(135deg,#eef6ea,#d9ecd0)">
+        <svg viewBox="0 0 300 150" aria-hidden="true">
+          <g stroke="#a9cc9a" stroke-width="1">
+            <path d="M0 30H300M0 55H300M0 80H300M0 105H300M0 130H300"/>
+          </g>
+          <path d="M40 0V150" stroke="#e58a8a" stroke-width="1.5"/>
+          <g fill="#3f7d32">
+            <rect x="70"  y="95" width="26" height="35" rx="3"/>
+            <rect x="110" y="70" width="26" height="60" rx="3"/>
+            <rect x="150" y="82" width="26" height="48" rx="3"/>
+            <rect x="190" y="45" width="26" height="85" rx="3"/>
+          </g>
+          <path d="M83 88 L123 62 L163 74 L203 36 L245 22" fill="none" stroke="#c4552d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="245" cy="22" r="5" fill="#c4552d"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="tags"><span class="tag">Learning</span><span class="tag">SES</span><span class="tag">Première</span></div>
+        <h2>Cahier de SES — Première</h2>
+        <p>A companion revision notebook for Sciences économiques et sociales: definitions, key mechanisms and review questions to prepare for tests.</p>
+        <div class="links">
+          <a href="cahiers/ses-premiere.html">Open the notebook →</a>
+        </div>
+      </div>
+    </article>
+
+    <!--
+      To add a project, copy one <article class="card"> block above and change:
+      the thumb background/SVG, the tags, the title, the description and the links.
+    -->
+
+  </main>
+
+  <footer>
+    Made by <a href="https://github.com/84piranhas">84piranhas</a> with Claude · Last updated October 2026
+  </footer>
+
+</div>
+</body>
+</html>

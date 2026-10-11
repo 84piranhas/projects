@@ -1,0 +1,3 @@
+[submodule "pacman-by-claude"]
+	path = pacman-by-claude
+	url = https://github.com/84piranhas/pacman-by-claude.git

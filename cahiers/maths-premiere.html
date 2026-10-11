@@ -1,0 +1,419 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Cahier de maths Première</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Caveat:wght@600;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Concept : page de cahier Seyès. Quadrillage, marge rouge, stylo bleu pour le cours, stylo rouge pour les corrections, surligneur jaune pour l'essentiel. */
+:root{
+  --paper:#fbfcff; --grid:#e6ebf9; --grid-strong:#ccd6f1; --margin:#e5675c;
+  --ink:#1d2547; --muted:#58628a; --blue:#2742c9; --blue-bg:#eaeeff;
+  --red:#c2362b; --panel:#ffffff; --line:#cfd6ee; --hl:#fff1a1;
+  --ok:#17794a; --ok-bg:#e3f5ea; --bad:#b3261e; --bad-bg:#fde8e6;
+  --f-display:'Caveat','Bradley Hand','Marker Felt','Segoe Print',sans-serif;
+  --f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;
+  --f-math:'STIX Two Text','Cambria Math','Times New Roman',serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12162b; --grid:#161b36; --grid-strong:#20284d; --margin:#d4574d;
+    --ink:#e7eafc; --muted:#9aa4cc; --blue:#93a6ff; --blue-bg:#222c5c;
+    --red:#ff9285; --panel:#1a2040; --line:#2f3868; --hl:#5a4f10;
+    --ok:#6ad59a; --ok-bg:#17382a; --bad:#ff8f86; --bad-bg:#432322;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12162b; --grid:#161b36; --grid-strong:#20284d; --margin:#d4574d;
+  --ink:#e7eafc; --muted:#9aa4cc; --blue:#93a6ff; --blue-bg:#222c5c;
+  --red:#ff9285; --panel:#1a2040; --line:#2f3868; --hl:#5a4f10;
+  --ok:#6ad59a; --ok-bg:#17382a; --bad:#ff8f86; --bad-bg:#432322;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:12px 16px 56px;
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid-strong) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-strong) 1px,transparent 1px),
+    linear-gradient(var(--grid) 1px,transparent 1px);
+  background-size:32px 32px,32px 32px,100% 8px;
+  color:var(--ink); font:17px/1.55 var(--f-body);
+}
+button{font:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.sheet{max-width:780px;margin:0 auto;padding-left:16px;border-left:2px solid var(--margin);display:grid;gap:20px;min-width:0}
+.kicker{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{margin:2px 0 8px;font:700 clamp(44px,10vw,64px)/1 var(--f-display);color:var(--blue)}
+.prog{display:none;gap:6px}
+.sheet.js .prog{display:grid}
+.bar{height:8px;max-width:360px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+.prog p{margin:0;font-size:14px;color:var(--muted)}
+#nav{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px}
+.chip{flex:0 0 auto;display:flex;gap:8px;align-items:baseline;min-height:44px;padding:8px 14px;border:1.5px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:15px;cursor:pointer}
+.chip small{font-size:12px;color:var(--muted)}
+.chip.done small::before{content:"✓ "}
+.chip[aria-current="true"]{background:var(--blue);border-color:var(--blue);color:var(--paper)}
+.chip[aria-current="true"] small{color:var(--paper);opacity:.85}
+#chap{display:grid;gap:22px;min-width:0}
+.dom{display:inline-block;justify-self:start;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:2px 8px}
+h2{margin:0;justify-self:start;font:700 clamp(36px,8vw,50px)/1.05 var(--f-display);color:var(--blue);border-bottom:2px solid var(--red);padding-bottom:2px;text-wrap:balance}
+.intro{margin:0;max-width:60ch}
+h3{margin:0 0 8px;font:700 30px/1.1 var(--f-display);color:var(--blue)}
+.rows{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.row{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr);gap:4px 16px;padding:10px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row dt{padding-top:4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.row dd{margin:0;min-width:0;font:1.14rem/1.8 var(--f-math);overflow-wrap:anywhere}
+.hl{background:linear-gradient(transparent 58%,var(--hl) 58%);padding:0 .2em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .2em;line-height:1.2;text-align:center}
+.fr>span{padding:0 .25em}
+.fr>span:first-child{border-bottom:1px solid currentColor}
+.fr.nb>span:first-child{border-bottom:0}
+.binom{display:inline-flex;align-items:center;vertical-align:middle}
+.bp{font-size:2.1em;font-weight:300;line-height:.8}
+.vec{position:relative;display:inline-block}
+.vec::after{content:"→";position:absolute;left:0;right:0;top:-.62em;text-align:center;font-size:.62em;line-height:1}
+.ov{text-decoration:overline}
+.tbl{overflow-x:auto}
+.tbl table{border-collapse:collapse;font-family:var(--f-math)}
+.tbl th,.tbl td{border:1px solid var(--line);padding:4px 12px;text-align:center;white-space:nowrap}
+.tbl th{font-weight:600;background:var(--blue-bg)}
+.meth{margin:0;padding:12px 14px;border:1.5px dashed var(--blue);border-radius:6px;background:var(--blue-bg)}
+.meth b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin-bottom:2px}
+.quiz{display:grid;gap:12px}
+.scorebar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.scorebar p{margin:0;font-size:15px;color:var(--muted)}
+.qcard{display:grid;gap:10px;padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:6px;min-width:0}
+.qn{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.qtext{margin:0;font-weight:700;min-width:0}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:12px;align-items:center;min-height:44px;padding:10px 12px;text-align:left;background:var(--paper);color:var(--ink);border:1.5px solid var(--line);border-radius:6px;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--blue)}
+.opt:disabled{cursor:default;color:var(--ink)}
+.opt .l{flex:0 0 auto;font:700 22px/1 var(--f-display);color:var(--blue)}
+.opt .t{flex:1 1 auto;min-width:0}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok)}
+.opt.ok::after{content:"✓";font-weight:700;color:var(--ok)}
+.opt.ko{background:var(--bad-bg);border-color:var(--bad)}
+.opt.ko::after{content:"✗";font-weight:700;color:var(--bad)}
+.expl{margin:0;padding:10px 12px;border-radius:6px;background:var(--blue-bg);font-size:15px}
+.ex{padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:grid;gap:12px}
+.ex .enonce{margin:0}
+details summary{display:inline-block;cursor:pointer;list-style:none;min-height:44px;padding:10px 16px;border:1.5px solid var(--red);border-radius:6px;color:var(--red);font-weight:700}
+details summary::-webkit-details-marker{display:none}
+details[open] summary{margin-bottom:10px}
+.corr{margin:0;padding-top:10px;border-top:1px dashed var(--red);color:var(--red)}
+.pager{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+.btn{min-height:44px;padding:10px 16px;background:var(--panel);color:var(--blue);border:1.5px solid var(--blue);border-radius:6px;font-weight:700;cursor:pointer}
+.btn.quiet{border-color:var(--line);color:var(--muted);font-weight:400;font-size:14px;min-height:36px;padding:6px 12px}
+.foot{display:none;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.foot p{margin:0}
+.sheet.js .foot{display:flex}
+a.chip{text-decoration:none}
+.chapter{display:grid;gap:22px;min-width:0;padding-bottom:28px;border-bottom:2px solid var(--line);scroll-margin-top:12px}
+.slist{margin:0;padding-left:1.6em;list-style:upper-alpha;display:grid;gap:4px}
+.qcard details summary{min-height:40px;padding:8px 14px}
+.sopts{position:relative}
+.sopts .rd{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.sopts .expl{display:none}
+.sopts .rd:checked ~ .expl{display:block}
+.sopts .rd:checked ~ label.opt{pointer-events:none}
+.sopts .rd:checked ~ label.opt[data-c="ok"]{background:var(--ok-bg);border-color:var(--ok)}
+.sopts .rd:checked ~ label.opt[data-c="ok"]::after{content:"✓";font-weight:700;color:var(--ok)}
+.sopts .rd:nth-of-type(1):checked ~ label.opt:nth-of-type(1)[data-c="ko"],
+.sopts .rd:nth-of-type(2):checked ~ label.opt:nth-of-type(2)[data-c="ko"],
+.sopts .rd:nth-of-type(3):checked ~ label.opt:nth-of-type(3)[data-c="ko"]{background:var(--bad-bg);border-color:var(--bad)}
+.sopts .rd:nth-of-type(1):checked ~ label.opt:nth-of-type(1)[data-c="ko"]::after,
+.sopts .rd:nth-of-type(2):checked ~ label.opt:nth-of-type(2)[data-c="ko"]::after,
+.sopts .rd:nth-of-type(3):checked ~ label.opt:nth-of-type(3)[data-c="ko"]::after{content:"✗";font-weight:700;color:var(--bad)}
+.nojs-note{margin:0;padding:10px 12px;border:1.5px dashed var(--blue);border-radius:6px;background:var(--blue-bg);font-size:15px}
+.sheet.js .nojs-note{display:none}
+@media (max-width:560px){
+  body{font-size:16px}
+  .row{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="sheet">
+  <header>
+    <p class="kicker">Spécialité mathématiques · Première</p>
+    <h1>Cahier de maths</h1>
+    <div class="prog">
+      <div class="bar" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="24" id="pbar"><i id="barfill"></i></div>
+      <p id="progtxt"></p>
+    </div>
+  </header>
+  <nav id="nav" aria-label="Chapitres"><a class="chip" href="#second-degre"><span>Second degré</span><small>Algèbre</small></a><a class="chip" href="#suites"><span>Suites</span><small>Algèbre</small></a><a class="chip" href="#derivation"><span>Dérivation</span><small>Analyse</small></a><a class="chip" href="#exponentielle"><span>Exponentielle</span><small>Analyse</small></a><a class="chip" href="#trigonometrie"><span>Trigonométrie</span><small>Analyse</small></a><a class="chip" href="#produit-scalaire"><span>Produit scalaire</span><small>Géométrie</small></a><a class="chip" href="#probabilites-conditionnelles"><span>Probabilités conditionnelles</span><small>Probabilités</small></a><a class="chip" href="#variables-aleatoires"><span>Variables aléatoires</span><small>Probabilités</small></a></nav>
+  <p class="nojs-note"><b>Version simplifiée.</b> Touche une réponse pour voir la correction. Ta progression n’est pas enregistrée dans cette vue.</p>
+  <main id="chap"><article class="chapter" id="second-degre"><span class="dom">Algèbre</span><h2>Second degré</h2><p class="intro">Trinômes, discriminant, signe : la boîte à outils pour résoudre et étudier ax² + bx + c.</p><section><h3>À retenir</h3><dl class="rows"><div class="row"><dt>Forme développée</dt><dd><span class="hl">f(x) = ax² + bx + c   (a ≠ 0)</span></dd></div><div class="row"><dt>Discriminant</dt><dd><span class="hl">Δ = b² − 4ac</span></dd></div><div class="row"><dt>Si Δ > 0</dt><dd><span class="hl">deux racines  x<sub>1</sub> = <span class="fr"><span>−b − √Δ</span><span>2a</span></span>  et  x<sub>2</sub> = <span class="fr"><span>−b + √Δ</span><span>2a</span></span></span></dd></div><div class="row"><dt>Si Δ = 0</dt><dd><span class="hl">une racine double  x<sub>0</sub> = <span class="fr"><span>−b</span><span>2a</span></span></span></dd></div><div class="row"><dt>Si Δ < 0</dt><dd><span class="hl">aucune racine réelle : f garde le signe de a</span></dd></div><div class="row"><dt>Forme canonique</dt><dd><span class="hl">f(x) = a(x − α)² + β   avec α = <span class="fr"><span>−b</span><span>2a</span></span>  et  β = f(α)</span></dd></div><div class="row"><dt>Signe si Δ > 0</dt><dd><span class="hl">signe de a à l’extérieur des racines, signe de −a entre les racines</span></dd></div><div class="row"><dt>Somme et produit</dt><dd><span class="hl">x<sub>1</sub> + x<sub>2</sub> = <span class="fr"><span>−b</span><span>a</span></span>   et   x<sub>1</sub>·x<sub>2</sub> = <span class="fr"><span>c</span><span>a</span></span></span></dd></div></dl></section><p class="meth"><b>Méthode</b>Pour résoudre une inéquation du second degré : calcule Δ, trouve les racines, dessine l’allure de la parabole (a > 0 : bras vers le haut), puis lis le signe sur le dessin.</p><section class="quiz"><h3>Quiz</h3><div class="qcard"><p class="qn">Question 1</p><p class="qtext">Combien de racines réelles a 2x² − 4x + 5 ?</p><div class="opts sopts"><input class="rd" type="radio" name="second-degre-q0" id="second-degre-q0-0"><input class="rd" type="radio" name="second-degre-q0" id="second-degre-q0-1"><input class="rd" type="radio" name="second-degre-q0" id="second-degre-q0-2"><label class="opt" data-c="ok" for="second-degre-q0-0"><span class="l">A</span><span class="t">Aucune</span></label><label class="opt" data-c="ko" for="second-degre-q0-1"><span class="l">B</span><span class="t">Une</span></label><label class="opt" data-c="ko" for="second-degre-q0-2"><span class="l">C</span><span class="t">Deux</span></label><p class="expl"><b>Réponse A.</b> Δ = (−4)² − 4×2×5 = 16 − 40 = −24 < 0 : pas de racine réelle.</p></div></div><div class="qcard"><p class="qn">Question 2</p><p class="qtext">Quelles sont les racines de x² − 5x + 6 ?</p><div class="opts sopts"><input class="rd" type="radio" name="second-degre-q1" id="second-degre-q1-0"><input class="rd" type="radio" name="second-degre-q1" id="second-degre-q1-1"><input class="rd" type="radio" name="second-degre-q1" id="second-degre-q1-2"><label class="opt" data-c="ko" for="second-degre-q1-0"><span class="l">A</span><span class="t">−2 et −3</span></label><label class="opt" data-c="ok" for="second-degre-q1-1"><span class="l">B</span><span class="t">2 et 3</span></label><label class="opt" data-c="ko" for="second-degre-q1-2"><span class="l">C</span><span class="t">1 et 6</span></label><p class="expl"><b>Réponse B.</b> Somme = 5 et produit = 6, donc les racines sont 2 et 3. (Δ = 25 − 24 = 1.)</p></div></div><div class="qcard"><p class="qn">Question 3</p><p class="qtext">Quelle est la forme canonique de x² − 6x + 1 ?</p><div class="opts sopts"><input class="rd" type="radio" name="second-degre-q2" id="second-degre-q2-0"><input class="rd" type="radio" name="second-degre-q2" id="second-degre-q2-1"><input class="rd" type="radio" name="second-degre-q2" id="second-degre-q2-2"><label class="opt" data-c="ko" for="second-degre-q2-0"><span class="l">A</span><span class="t">(x − 3)² + 1</span></label><label class="opt" data-c="ko" for="second-degre-q2-1"><span class="l">B</span><span class="t">(x + 3)² − 8</span></label><label class="opt" data-c="ok" for="second-degre-q2-2"><span class="l">C</span><span class="t">(x − 3)² − 8</span></label><p class="expl"><b>Réponse C.</b> α = 3 et β = f(3) = 9 − 18 + 1 = −8. Donc f(x) = (x − 3)² − 8.</p></div></div></section><section class="ex"><h3>Exercice</h3><p class="enonce">Résoudre dans ℝ l’inéquation 2x² − x − 3 ≥ 0.</p><details><summary>Voir la correction</summary><p class="corr">Δ = (−1)² − 4×2×(−3) = 1 + 24 = 25, donc √Δ = 5. Racines : x<sub>1</sub> = (1 − 5)/4 = −1 et x<sub>2</sub> = (1 + 5)/4 = 3/2. Comme a = 2 > 0, le trinôme est positif à l’extérieur des racines. Ensemble des solutions : S = ]−∞ ; −1] ∪ [3/2 ; +∞[.</p></details></section></article>
+<article class="chapter" id="suites"><span class="dom">Algèbre</span><h2>Suites</h2><p class="intro">Suites arithmétiques et géométriques : formules explicites, sommes et sens de variation.</p><section><h3>À retenir</h3><dl class="rows"><div class="row"><dt>Suite arithmétique</dt><dd><span class="hl">u<sub>n+1</sub> = u<sub>n</sub> + r   ⇒   u<sub>n</sub> = u<sub>0</sub> + n·r</span></dd></div><div class="row"><dt>Somme arithmétique</dt><dd><span class="hl">u<sub>0</sub> + … + u<sub>n</sub> = (n + 1) × <span class="fr"><span>u<sub>0</sub> + u<sub>n</sub></span><span>2</span></span></span></dd></div><div class="row"><dt>Suite géométrique</dt><dd><span class="hl">u<sub>n+1</sub> = q·u<sub>n</sub>   ⇒   u<sub>n</sub> = u<sub>0</sub>·q<sup>n</sup></span></dd></div><div class="row"><dt>Somme géométrique (q ≠ 1)</dt><dd><span class="hl">1 + q + … + q<sup>n</sup> = <span class="fr"><span>1 − q<sup>n+1</sup></span><span>1 − q</span></span></span></dd></div><div class="row"><dt>Sens de variation</dt><dd><span class="hl">étudier le signe de u<sub>n+1</sub> − u<sub>n</sub>. Pour une suite géométrique avec u<sub>0</sub> > 0 : croissante si q > 1, décroissante si 0 < q < 1.</span></dd></div></dl></section><p class="meth"><b>Méthode</b>Pour reconnaître une suite géométrique, calcule le quotient u<sub>n+1</sub> / u<sub>n</sub> : s’il est constant, c’est la raison q. Pour une suite arithmétique, calcule la différence u<sub>n+1</sub> − u<sub>n</sub>.</p><section class="quiz"><h3>Quiz</h3><div class="qcard"><p class="qn">Question 1</p><p class="qtext">Suite arithmétique de premier terme u<sub>0</sub> = 5 et de raison 3. Que vaut u<sub>10</sub> ?</p><div class="opts sopts"><input class="rd" type="radio" name="suites-q0" id="suites-q0-0"><input class="rd" type="radio" name="suites-q0" id="suites-q0-1"><input class="rd" type="radio" name="suites-q0" id="suites-q0-2"><label class="opt" data-c="ko" for="suites-q0-0"><span class="l">A</span><span class="t">30</span></label><label class="opt" data-c="ok" for="suites-q0-1"><span class="l">B</span><span class="t">35</span></label><label class="opt" data-c="ko" for="suites-q0-2"><span class="l">C</span><span class="t">38</span></label><p class="expl"><b>Réponse B.</b> u<sub>10</sub> = 5 + 10×3 = 35.</p></div></div><div class="qcard"><p class="qn">Question 2</p><p class="qtext">Suite géométrique avec u<sub>0</sub> = 2 et q = 3. Que vaut u<sub>4</sub> ?</p><div class="opts sopts"><input class="rd" type="radio" name="suites-q1" id="suites-q1-0"><input class="rd" type="radio" name="suites-q1" id="suites-q1-1"><input class="rd" type="radio" name="suites-q1" id="suites-q1-2"><label class="opt" data-c="ok" for="suites-q1-0"><span class="l">A</span><span class="t">162</span></label><label class="opt" data-c="ko" for="suites-q1-1"><span class="l">B</span><span class="t">54</span></label><label class="opt" data-c="ko" for="suites-q1-2"><span class="l">C</span><span class="t">24</span></label><p class="expl"><b>Réponse A.</b> u<sub>4</sub> = 2×3<sup>4</sup> = 2×81 = 162.</p></div></div><div class="qcard"><p class="qn">Question 3</p><p class="qtext">Que vaut 1 + 2 + 4 + … + 2<sup>9</sup> ?</p><div class="opts sopts"><input class="rd" type="radio" name="suites-q2" id="suites-q2-0"><input class="rd" type="radio" name="suites-q2" id="suites-q2-1"><input class="rd" type="radio" name="suites-q2" id="suites-q2-2"><label class="opt" data-c="ko" for="suites-q2-0"><span class="l">A</span><span class="t">511</span></label><label class="opt" data-c="ko" for="suites-q2-1"><span class="l">B</span><span class="t">1024</span></label><label class="opt" data-c="ok" for="suites-q2-2"><span class="l">C</span><span class="t">1023</span></label><p class="expl"><b>Réponse C.</b> Somme géométrique de raison 2 : (1 − 2<sup>10</sup>)/(1 − 2) = 2<sup>10</sup> − 1 = 1023.</p></div></div></section><section class="ex"><h3>Exercice</h3><p class="enonce">Un capital de 1 000 € est placé à 5 % par an, intérêts composés. On note u<sub>n</sub> le capital après n années. 1) Quelle est la nature de la suite (u<sub>n</sub>) ? Donne u<sub>n</sub> en fonction de n. 2) À partir de quelle année le capital dépasse-t-il 1 500 € ?</p><details><summary>Voir la correction</summary><p class="corr">1) Chaque année, le capital est multiplié par 1,05 : u<sub>n+1</sub> = 1,05·u<sub>n</sub>. La suite est géométrique de raison 1,05 et de premier terme u<sub>0</sub> = 1 000, donc u<sub>n</sub> = 1 000 × 1,05<sup>n</sup>. 2) À la calculatrice : u<sub>8</sub> ≈ 1 477,46 < 1 500 et u<sub>9</sub> ≈ 1 551,33 > 1 500. La suite est croissante (q > 1), donc le capital dépasse 1 500 € dès la 9<sup>e</sup> année.</p></details></section></article>
+<article class="chapter" id="derivation"><span class="dom">Analyse</span><h2>Dérivation</h2><p class="intro">Nombre dérivé, tangente, règles de calcul et tableau de variations.</p><section><h3>À retenir</h3><dl class="rows"><div class="row"><dt>Nombre dérivé</dt><dd><span class="hl">f′(a) = lim<sub>h→0</sub> <span class="fr"><span>f(a + h) − f(a)</span><span>h</span></span></span></dd></div><div class="row"><dt>Tangente en a</dt><dd><span class="hl">y = f′(a)(x − a) + f(a)</span></dd></div><div class="row"><dt>Dérivées usuelles</dt><dd><span class="hl">(k)′ = 0 ;  (x)′ = 1 ;  (x<sup>n</sup>)′ = n·x<sup>n−1</sup> ;  (<span class="fr"><span>1</span><span>x</span></span>)′ = <span class="fr"><span>−1</span><span>x²</span></span> ;  (√x)′ = <span class="fr"><span>1</span><span>2√x</span></span></span></dd></div><div class="row"><dt>Opérations</dt><dd><span class="hl">(u + v)′ = u′ + v′ ;  (ku)′ = k·u′ ;  (uv)′ = u′v + uv′ ;  (<span class="fr"><span>u</span><span>v</span></span>)′ = <span class="fr"><span>u′v − uv′</span><span>v²</span></span></span></dd></div><div class="row"><dt>Variations</dt><dd><span class="hl">f′ ≥ 0 sur I ⇒ f croissante sur I ;  f′ ≤ 0 sur I ⇒ f décroissante sur I</span></dd></div><div class="row"><dt>Extremum</dt><dd><span class="hl">si f′ s’annule en changeant de signe en a, f admet un extremum local en a</span></dd></div></dl></section><p class="meth"><b>Méthode</b>Pour dresser un tableau de variations : calcule f′, factorise-la, étudie son signe, déduis-en le sens de variation de f, puis calcule les valeurs aux points clés.</p><section class="quiz"><h3>Quiz</h3><div class="qcard"><p class="qn">Question 1</p><p class="qtext">Quelle est la dérivée de f(x) = 3x² − 5x + 1 ?</p><div class="opts sopts"><input class="rd" type="radio" name="derivation-q0" id="derivation-q0-0"><input class="rd" type="radio" name="derivation-q0" id="derivation-q0-1"><input class="rd" type="radio" name="derivation-q0" id="derivation-q0-2"><label class="opt" data-c="ko" for="derivation-q0-0"><span class="l">A</span><span class="t">3x − 5</span></label><label class="opt" data-c="ok" for="derivation-q0-1"><span class="l">B</span><span class="t">6x − 5</span></label><label class="opt" data-c="ko" for="derivation-q0-2"><span class="l">C</span><span class="t">6x² − 5x</span></label><p class="expl"><b>Réponse B.</b> (3x²)′ = 6x, (−5x)′ = −5 et (1)′ = 0.</p></div></div><div class="qcard"><p class="qn">Question 2</p><p class="qtext">Quelle est la dérivée de f(x) = (x + 1)(2x − 3) ?</p><div class="opts sopts"><input class="rd" type="radio" name="derivation-q1" id="derivation-q1-0"><input class="rd" type="radio" name="derivation-q1" id="derivation-q1-1"><input class="rd" type="radio" name="derivation-q1" id="derivation-q1-2"><label class="opt" data-c="ko" for="derivation-q1-0"><span class="l">A</span><span class="t">2</span></label><label class="opt" data-c="ko" for="derivation-q1-1"><span class="l">B</span><span class="t">2x − 3</span></label><label class="opt" data-c="ok" for="derivation-q1-2"><span class="l">C</span><span class="t">4x − 1</span></label><p class="expl"><b>Réponse C.</b> (uv)′ = u′v + uv′ = 1×(2x − 3) + (x + 1)×2 = 4x − 1. On retrouve le même résultat en développant : 2x² − x − 3.</p></div></div><div class="qcard"><p class="qn">Question 3</p><p class="qtext">Quelle est l’équation de la tangente à la courbe de f(x) = x² au point d’abscisse 2 ?</p><div class="opts sopts"><input class="rd" type="radio" name="derivation-q2" id="derivation-q2-0"><input class="rd" type="radio" name="derivation-q2" id="derivation-q2-1"><input class="rd" type="radio" name="derivation-q2" id="derivation-q2-2"><label class="opt" data-c="ok" for="derivation-q2-0"><span class="l">A</span><span class="t">y = 4x − 4</span></label><label class="opt" data-c="ko" for="derivation-q2-1"><span class="l">B</span><span class="t">y = 4x + 4</span></label><label class="opt" data-c="ko" for="derivation-q2-2"><span class="l">C</span><span class="t">y = 2x</span></label><p class="expl"><b>Réponse A.</b> f(2) = 4 et f′(2) = 4, donc y = 4(x − 2) + 4 = 4x − 4.</p></div></div></section><section class="ex"><h3>Exercice</h3><p class="enonce">Soit f(x) = x³ − 3x² + 1 sur ℝ. Étudier les variations de f.</p><details><summary>Voir la correction</summary><p class="corr">f′(x) = 3x² − 6x = 3x(x − 2). C’est un trinôme de racines 0 et 2, avec 3 > 0 : f′ est positive sur ]−∞ ; 0[ et sur ]2 ; +∞[, négative sur ]0 ; 2[. Donc f est croissante sur ]−∞ ; 0], décroissante sur [0 ; 2], puis croissante sur [2 ; +∞[. Extremums locaux : f(0) = 1 (maximum) et f(2) = 8 − 12 + 1 = −3 (minimum).</p></details></section></article>
+<article class="chapter" id="exponentielle"><span class="dom">Analyse</span><h2>Exponentielle</h2><p class="intro">La fonction qui est sa propre dérivée, ses règles de calcul et son signe.</p><section><h3>À retenir</h3><dl class="rows"><div class="row"><dt>Définition</dt><dd><span class="hl">exp est l’unique fonction dérivable sur ℝ telle que f′ = f et f(0) = 1. On note exp(x) = e<sup>x</sup>.</span></dd></div><div class="row"><dt>Signe et variations</dt><dd><span class="hl">e<sup>x</sup> > 0 pour tout réel x ; exp est strictement croissante sur ℝ.</span></dd></div><div class="row"><dt>Règles de calcul</dt><dd><span class="hl">e<sup>a+b</sup> = e<sup>a</sup>·e<sup>b</sup> ;  e<sup>−a</sup> = <span class="fr"><span>1</span><span>e<sup>a</sup></span></span> ;  (e<sup>a</sup>)<sup>n</sup> = e<sup>na</sup></span></dd></div><div class="row"><dt>Valeurs</dt><dd><span class="hl">e⁰ = 1 ;  e¹ = e ≈ 2,718</span></dd></div><div class="row"><dt>Dérivée</dt><dd><span class="hl">(e<sup>u</sup>)′ = u′·e<sup>u</sup> ;  en particulier (e<sup>kx</sup>)′ = k·e<sup>kx</sup></span></dd></div><div class="row"><dt>Équations et inéquations</dt><dd><span class="hl">e<sup>a</sup> = e<sup>b</sup> ⇔ a = b ;  e<sup>a</sup> < e<sup>b</sup> ⇔ a < b</span></dd></div></dl></section><p class="meth"><b>Méthode</b>Pour étudier une fonction du type (ax + b)e<sup>x</sup> : dérive avec la formule du produit, factorise par e<sup>x</sup>, puis utilise e<sup>x</sup> > 0. Le signe de f′ est celui du facteur qui reste.</p><section class="quiz"><h3>Quiz</h3><div class="qcard"><p class="qn">Question 1</p><p class="qtext">Simplifier e<sup>3</sup> × e<sup>−5</sup>.</p><div class="opts sopts"><input class="rd" type="radio" name="exponentielle-q0" id="exponentielle-q0-0"><input class="rd" type="radio" name="exponentielle-q0" id="exponentielle-q0-1"><input class="rd" type="radio" name="exponentielle-q0" id="exponentielle-q0-2"><label class="opt" data-c="ko" for="exponentielle-q0-0"><span class="l">A</span><span class="t">e<sup>−1</sup></span></label><label class="opt" data-c="ok" for="exponentielle-q0-1"><span class="l">B</span><span class="t">e<sup>−2</sup></span></label><label class="opt" data-c="ko" for="exponentielle-q0-2"><span class="l">C</span><span class="t">e<sup>−15</sup></span></label><p class="expl"><b>Réponse B.</b> e<sup>3</sup> × e<sup>−5</sup> = e<sup>3 + (−5)</sup> = e<sup>−2</sup>.</p></div></div><div class="qcard"><p class="qn">Question 2</p><p class="qtext">Quelle est la dérivée de f(x) = e<sup>2x+1</sup> ?</p><div class="opts sopts"><input class="rd" type="radio" name="exponentielle-q1" id="exponentielle-q1-0"><input class="rd" type="radio" name="exponentielle-q1" id="exponentielle-q1-1"><input class="rd" type="radio" name="exponentielle-q1" id="exponentielle-q1-2"><label class="opt" data-c="ko" for="exponentielle-q1-0"><span class="l">A</span><span class="t">e<sup>2x+1</sup></span></label><label class="opt" data-c="ok" for="exponentielle-q1-1"><span class="l">B</span><span class="t">2e<sup>2x+1</sup></span></label><label class="opt" data-c="ko" for="exponentielle-q1-2"><span class="l">C</span><span class="t">(2x + 1)e<sup>2x</sup></span></label><p class="expl"><b>Réponse B.</b> (e<sup>u</sup>)′ = u′·e<sup>u</sup> avec u = 2x + 1 et u′ = 2.</p></div></div><div class="qcard"><p class="qn">Question 3</p><p class="qtext">Résoudre e<sup>2x</sup> = e<sup>x+3</sup>.</p><div class="opts sopts"><input class="rd" type="radio" name="exponentielle-q2" id="exponentielle-q2-0"><input class="rd" type="radio" name="exponentielle-q2" id="exponentielle-q2-1"><input class="rd" type="radio" name="exponentielle-q2" id="exponentielle-q2-2"><label class="opt" data-c="ok" for="exponentielle-q2-0"><span class="l">A</span><span class="t">x = 3</span></label><label class="opt" data-c="ko" for="exponentielle-q2-1"><span class="l">B</span><span class="t">x = −3</span></label><label class="opt" data-c="ko" for="exponentielle-q2-2"><span class="l">C</span><span class="t">x = 1</span></label><p class="expl"><b>Réponse A.</b> e<sup>2x</sup> = e<sup>x+3</sup> ⇔ 2x = x + 3 ⇔ x = 3.</p></div></div></section><section class="ex"><h3>Exercice</h3><p class="enonce">Soit f(x) = (x − 1)e<sup>x</sup> sur ℝ. Étudier les variations de f.</p><details><summary>Voir la correction</summary><p class="corr">f = uv avec u = x − 1 et v = e<sup>x</sup>. Alors f′(x) = 1×e<sup>x</sup> + (x − 1)e<sup>x</sup> = x·e<sup>x</sup>. Comme e<sup>x</sup> > 0, f′(x) a le signe de x. Donc f est décroissante sur ]−∞ ; 0] et croissante sur [0 ; +∞[. Son minimum est f(0) = −1.</p></details></section></article>
+<article class="chapter" id="trigonometrie"><span class="dom">Analyse</span><h2>Trigonométrie</h2><p class="intro">Radians, cercle trigonométrique, valeurs remarquables et équations.</p><section><h3>À retenir</h3><dl class="rows"><div class="row"><dt>Conversion</dt><dd><span class="hl">π rad = 180° ;  30° = π/6 ;  45° = π/4 ;  60° = π/3 ;  90° = π/2</span></dd></div><div class="row"><dt>Valeurs remarquables</dt><dd><div class="tbl"><table><tr><th>x</th><td>0</td><td>π/6</td><td>π/4</td><td>π/3</td><td>π/2</td></tr><tr><th>cos x</th><td>1</td><td><span class="fr"><span>√3</span><span>2</span></span></td><td><span class="fr"><span>√2</span><span>2</span></span></td><td><span class="fr"><span>1</span><span>2</span></span></td><td>0</td></tr><tr><th>sin x</th><td>0</td><td><span class="fr"><span>1</span><span>2</span></span></td><td><span class="fr"><span>√2</span><span>2</span></span></td><td><span class="fr"><span>√3</span><span>2</span></span></td><td>1</td></tr></table></div></dd></div><div class="row"><dt>Relation fondamentale</dt><dd><span class="hl">cos²x + sin²x = 1</span></dd></div><div class="row"><dt>Symétries</dt><dd><span class="hl">cos(−x) = cos x ;  sin(−x) = −sin x ;  cos(π − x) = −cos x ;  sin(π − x) = sin x</span></dd></div><div class="row"><dt>Périodicité</dt><dd><span class="hl">cos(x + 2π) = cos x ;  sin(x + 2π) = sin x</span></dd></div><div class="row"><dt>Dérivées</dt><dd><span class="hl">cos′ = −sin ;  sin′ = cos</span></dd></div><div class="row"><dt>Équations</dt><dd><span class="hl">cos x = cos a ⇔ x = a + 2kπ ou x = −a + 2kπ ;  sin x = sin a ⇔ x = a + 2kπ ou x = π − a + 2kπ   (k ∈ ℤ)</span></dd></div></dl></section><p class="meth"><b>Méthode</b>Pour une équation trigonométrique, ramène-toi à cos x = cos a ou sin x = sin a avec une valeur remarquable. Écris toutes les solutions modulo 2π, puis garde celles de l’intervalle demandé.</p><section class="quiz"><h3>Quiz</h3><div class="qcard"><p class="qn">Question 1</p><p class="qtext">120° en radians, ça fait combien ?</p><div class="opts sopts"><input class="rd" type="radio" name="trigonometrie-q0" id="trigonometrie-q0-0"><input class="rd" type="radio" name="trigonometrie-q0" id="trigonometrie-q0-1"><input class="rd" type="radio" name="trigonometrie-q0" id="trigonometrie-q0-2"><label class="opt" data-c="ko" for="trigonometrie-q0-0"><span class="l">A</span><span class="t">π/3</span></label><label class="opt" data-c="ok" for="trigonometrie-q0-1"><span class="l">B</span><span class="t">2π/3</span></label><label class="opt" data-c="ko" for="trigonometrie-q0-2"><span class="l">C</span><span class="t">3π/4</span></label><p class="expl"><b>Réponse B.</b> 120° = 120 × π/180 = 2π/3.</p></div></div><div class="qcard"><p class="qn">Question 2</p><p class="qtext">Que vaut sin(π/3) ?</p><div class="opts sopts"><input class="rd" type="radio" name="trigonometrie-q1" id="trigonometrie-q1-0"><input class="rd" type="radio" name="trigonometrie-q1" id="trigonometrie-q1-1"><input class="rd" type="radio" name="trigonometrie-q1" id="trigonometrie-q1-2"><label class="opt" data-c="ko" for="trigonometrie-q1-0"><span class="l">A</span><span class="t">1/2</span></label><label class="opt" data-c="ok" for="trigonometrie-q1-1"><span class="l">B</span><span class="t">√3/2</span></label><label class="opt" data-c="ko" for="trigonometrie-q1-2"><span class="l">C</span><span class="t">√2/2</span></label><p class="expl"><b>Réponse B.</b> C’est une valeur remarquable : sin(π/3) = √3/2 et cos(π/3) = 1/2.</p></div></div><div class="qcard"><p class="qn">Question 3</p><p class="qtext">On sait que cos x = 3/5 avec x ∈ [0 ; π]. Que vaut sin x ?</p><div class="opts sopts"><input class="rd" type="radio" name="trigonometrie-q2" id="trigonometrie-q2-0"><input class="rd" type="radio" name="trigonometrie-q2" id="trigonometrie-q2-1"><input class="rd" type="radio" name="trigonometrie-q2" id="trigonometrie-q2-2"><label class="opt" data-c="ko" for="trigonometrie-q2-0"><span class="l">A</span><span class="t">−4/5</span></label><label class="opt" data-c="ko" for="trigonometrie-q2-1"><span class="l">B</span><span class="t">2/5</span></label><label class="opt" data-c="ok" for="trigonometrie-q2-2"><span class="l">C</span><span class="t">4/5</span></label><p class="expl"><b>Réponse C.</b> sin²x = 1 − 9/25 = 16/25. Sur [0 ; π], sin x ≥ 0, donc sin x = 4/5.</p></div></div></section><section class="ex"><h3>Exercice</h3><p class="enonce">Résoudre 2cos x − 1 = 0 sur ]−π ; π].</p><details><summary>Voir la correction</summary><p class="corr">L’équation équivaut à cos x = 1/2 = cos(π/3). Donc x = π/3 + 2kπ ou x = −π/3 + 2kπ. Dans ]−π ; π], on garde k = 0 : S = {−π/3 ; π/3}.</p></details></section></article>
+<article class="chapter" id="produit-scalaire"><span class="dom">Géométrie</span><h2>Produit scalaire</h2><p class="intro">Orthogonalité, longueurs, angles, droites et cercles dans un repère orthonormé.</p><section><h3>À retenir</h3><dl class="rows"><div class="row"><dt>Définition</dt><dd><span class="hl"><span class="vec">u</span>·<span class="vec">v</span> = ‖<span class="vec">u</span>‖ × ‖<span class="vec">v</span>‖ × cos(<span class="vec">u</span>, <span class="vec">v</span>)</span></dd></div><div class="row"><dt>En coordonnées</dt><dd><span class="hl"><span class="vec">u</span>(x ; y) et <span class="vec">v</span>(x′ ; y′) :  <span class="vec">u</span>·<span class="vec">v</span> = xx′ + yy′</span></dd></div><div class="row"><dt>Orthogonalité</dt><dd><span class="hl"><span class="vec">u</span>·<span class="vec">v</span> = 0 ⇔ <span class="vec">u</span> et <span class="vec">v</span> sont orthogonaux</span></dd></div><div class="row"><dt>Norme</dt><dd><span class="hl">‖<span class="vec">u</span>‖² = <span class="vec">u</span>·<span class="vec">u</span> = x² + y²</span></dd></div><div class="row"><dt>Développement</dt><dd><span class="hl">‖<span class="vec">u</span> + <span class="vec">v</span>‖² = ‖<span class="vec">u</span>‖² + 2 <span class="vec">u</span>·<span class="vec">v</span> + ‖<span class="vec">v</span>‖²</span></dd></div><div class="row"><dt>Al-Kashi</dt><dd><span class="hl">BC² = AB² + AC² − 2·AB·AC·cos Â</span></dd></div><div class="row"><dt>Cercle</dt><dd><span class="hl">centre Ω(a ; b) et rayon r :  (x − a)² + (y − b)² = r²</span></dd></div><div class="row"><dt>Droite</dt><dd><span class="hl">de vecteur normal n(a ; b) :  ax + by + c = 0</span></dd></div></dl></section><p class="meth"><b>Méthode</b>Pour montrer que deux droites sont perpendiculaires, calcule le produit scalaire de leurs vecteurs directeurs : s’il est nul, elles le sont. Pour un cercle de diamètre [AB], un point M appartient au cercle ⇔ <span class="vec">MA</span>·<span class="vec">MB</span> = 0.</p><section class="quiz"><h3>Quiz</h3><div class="qcard"><p class="qn">Question 1</p><p class="qtext"><span class="vec">u</span>(2 ; 3) et <span class="vec">v</span>(4 ; −1). Que vaut <span class="vec">u</span>·<span class="vec">v</span> ?</p><div class="opts sopts"><input class="rd" type="radio" name="produit-scalaire-q0" id="produit-scalaire-q0-0"><input class="rd" type="radio" name="produit-scalaire-q0" id="produit-scalaire-q0-1"><input class="rd" type="radio" name="produit-scalaire-q0" id="produit-scalaire-q0-2"><label class="opt" data-c="ok" for="produit-scalaire-q0-0"><span class="l">A</span><span class="t">5</span></label><label class="opt" data-c="ko" for="produit-scalaire-q0-1"><span class="l">B</span><span class="t">11</span></label><label class="opt" data-c="ko" for="produit-scalaire-q0-2"><span class="l">C</span><span class="t">−5</span></label><p class="expl"><b>Réponse A.</b> 2×4 + 3×(−1) = 8 − 3 = 5.</p></div></div><div class="qcard"><p class="qn">Question 2</p><p class="qtext">Pour quelle valeur de k les vecteurs <span class="vec">u</span>(3 ; k) et <span class="vec">v</span>(2 ; 6) sont-ils orthogonaux ?</p><div class="opts sopts"><input class="rd" type="radio" name="produit-scalaire-q1" id="produit-scalaire-q1-0"><input class="rd" type="radio" name="produit-scalaire-q1" id="produit-scalaire-q1-1"><input class="rd" type="radio" name="produit-scalaire-q1" id="produit-scalaire-q1-2"><label class="opt" data-c="ko" for="produit-scalaire-q1-0"><span class="l">A</span><span class="t">k = 1</span></label><label class="opt" data-c="ok" for="produit-scalaire-q1-1"><span class="l">B</span><span class="t">k = −1</span></label><label class="opt" data-c="ko" for="produit-scalaire-q1-2"><span class="l">C</span><span class="t">k = −1/3</span></label><p class="expl"><b>Réponse B.</b> 3×2 + k×6 = 0 ⇔ 6 + 6k = 0 ⇔ k = −1.</p></div></div><div class="qcard"><p class="qn">Question 3</p><p class="qtext">Dans le triangle ABC : AB = 5, AC = 8 et l’angle Â = 60°. Que vaut BC ?</p><div class="opts sopts"><input class="rd" type="radio" name="produit-scalaire-q2" id="produit-scalaire-q2-0"><input class="rd" type="radio" name="produit-scalaire-q2" id="produit-scalaire-q2-1"><input class="rd" type="radio" name="produit-scalaire-q2" id="produit-scalaire-q2-2"><label class="opt" data-c="ok" for="produit-scalaire-q2-0"><span class="l">A</span><span class="t">7</span></label><label class="opt" data-c="ko" for="produit-scalaire-q2-1"><span class="l">B</span><span class="t">√89</span></label><label class="opt" data-c="ko" for="produit-scalaire-q2-2"><span class="l">C</span><span class="t">√129</span></label><p class="expl"><b>Réponse A.</b> BC² = 25 + 64 − 2×5×8×cos 60° = 89 − 40 = 49, donc BC = 7.</p></div></div></section><section class="ex"><h3>Exercice</h3><p class="enonce">Dans un repère orthonormé, A(1 ; 2) et B(5 ; 4). Déterminer l’équation du cercle de diamètre [AB].</p><details><summary>Voir la correction</summary><p class="corr">Le centre est le milieu de [AB] : Ω(3 ; 3). Le rayon vérifie AB = √(4² + 2²) = √20, donc r = √20 / 2 et r² = 5. Équation : (x − 3)² + (y − 3)² = 5. Vérification avec le produit scalaire : <span class="vec">MA</span>·<span class="vec">MB</span> = (1 − x)(5 − x) + (2 − y)(4 − y) = x² − 6x + y² − 6y + 13, qui s’annule exactement quand (x − 3)² + (y − 3)² = 5.</p></details></section></article>
+<article class="chapter" id="probabilites-conditionnelles"><span class="dom">Probabilités</span><h2>Probabilités conditionnelles</h2><p class="intro">Arbres pondérés, formule des probabilités totales et indépendance.</p><section><h3>À retenir</h3><dl class="rows"><div class="row"><dt>Probabilité conditionnelle</dt><dd><span class="hl">P<sub>A</sub>(B) = <span class="fr"><span>P(A ∩ B)</span><span>P(A)</span></span>   (P(A) ≠ 0)</span></dd></div><div class="row"><dt>Formule des produits</dt><dd><span class="hl">P(A ∩ B) = P(A) × P<sub>A</sub>(B)</span></dd></div><div class="row"><dt>Probabilités totales</dt><dd><span class="hl">P(B) = P(A ∩ B) + P(<span class="ov">A</span> ∩ B) = P(A)·P<sub>A</sub>(B) + P(<span class="ov">A</span>)·P<sub><span class="ov">A</span></sub>(B)</span></dd></div><div class="row"><dt>Arbre pondéré</dt><dd><span class="hl">la somme des probabilités des branches issues d’un même nœud vaut 1 ; on multiplie le long d’un chemin, on additionne les chemins qui mènent à l’événement.</span></dd></div><div class="row"><dt>Indépendance</dt><dd><span class="hl">A et B indépendants ⇔ P(A ∩ B) = P(A) × P(B) ⇔ P<sub>A</sub>(B) = P(B)</span></dd></div></dl></section><p class="meth"><b>Méthode</b>Devant un énoncé : nomme les événements, dessine l’arbre, place les probabilités données, puis complète. Pour renverser un conditionnement, utilise P<sub>B</sub>(A) = P(A ∩ B) / P(B).</p><section class="quiz"><h3>Quiz</h3><div class="qcard"><p class="qn">Question 1</p><p class="qtext">P(A) = 0,4 et P<sub>A</sub>(B) = 0,5. Que vaut P(A ∩ B) ?</p><div class="opts sopts"><input class="rd" type="radio" name="probabilites-conditionnelles-q0" id="probabilites-conditionnelles-q0-0"><input class="rd" type="radio" name="probabilites-conditionnelles-q0" id="probabilites-conditionnelles-q0-1"><input class="rd" type="radio" name="probabilites-conditionnelles-q0" id="probabilites-conditionnelles-q0-2"><label class="opt" data-c="ko" for="probabilites-conditionnelles-q0-0"><span class="l">A</span><span class="t">0,9</span></label><label class="opt" data-c="ok" for="probabilites-conditionnelles-q0-1"><span class="l">B</span><span class="t">0,2</span></label><label class="opt" data-c="ko" for="probabilites-conditionnelles-q0-2"><span class="l">C</span><span class="t">0,8</span></label><p class="expl"><b>Réponse B.</b> P(A ∩ B) = P(A) × P<sub>A</sub>(B) = 0,4 × 0,5 = 0,2.</p></div></div><div class="qcard"><p class="qn">Question 2</p><p class="qtext">Une urne contient 3 boules rouges et 2 boules bleues. On tire deux boules sans remise. Quelle est la probabilité d’obtenir deux boules rouges ?</p><div class="opts sopts"><input class="rd" type="radio" name="probabilites-conditionnelles-q1" id="probabilites-conditionnelles-q1-0"><input class="rd" type="radio" name="probabilites-conditionnelles-q1" id="probabilites-conditionnelles-q1-1"><input class="rd" type="radio" name="probabilites-conditionnelles-q1" id="probabilites-conditionnelles-q1-2"><label class="opt" data-c="ok" for="probabilites-conditionnelles-q1-0"><span class="l">A</span><span class="t">3/10</span></label><label class="opt" data-c="ko" for="probabilites-conditionnelles-q1-1"><span class="l">B</span><span class="t">9/25</span></label><label class="opt" data-c="ko" for="probabilites-conditionnelles-q1-2"><span class="l">C</span><span class="t">3/5</span></label><p class="expl"><b>Réponse A.</b> 3/5 × 2/4 = 6/20 = 3/10. (9/25 correspondrait à un tirage avec remise.)</p></div></div><div class="qcard"><p class="qn">Question 3</p><p class="qtext">P(A) = 0,3 ; P(B) = 0,4 et P(A ∩ B) = 0,12. A et B sont-ils indépendants ?</p><div class="opts sopts"><input class="rd" type="radio" name="probabilites-conditionnelles-q2" id="probabilites-conditionnelles-q2-0"><input class="rd" type="radio" name="probabilites-conditionnelles-q2" id="probabilites-conditionnelles-q2-1"><input class="rd" type="radio" name="probabilites-conditionnelles-q2" id="probabilites-conditionnelles-q2-2"><label class="opt" data-c="ok" for="probabilites-conditionnelles-q2-0"><span class="l">A</span><span class="t">Oui</span></label><label class="opt" data-c="ko" for="probabilites-conditionnelles-q2-1"><span class="l">B</span><span class="t">Non</span></label><label class="opt" data-c="ko" for="probabilites-conditionnelles-q2-2"><span class="l">C</span><span class="t">On ne peut pas savoir</span></label><p class="expl"><b>Réponse A.</b> P(A) × P(B) = 0,3 × 0,4 = 0,12 = P(A ∩ B) : les événements sont indépendants.</p></div></div></section><section class="ex"><h3>Exercice</h3><p class="enonce">Une maladie touche 2 % d’une population. Un test est positif dans 95 % des cas chez un malade et dans 10 % des cas chez une personne saine. On note M « la personne est malade » et T « le test est positif ». 1) Calculer P(T). 2) Calculer P<sub>T</sub>(M) et interpréter.</p><details><summary>Voir la correction</summary><p class="corr">1) Probabilités totales : P(T) = P(M)×P<sub>M</sub>(T) + P(<span class="ov">M</span>)×P<sub><span class="ov">M</span></sub>(T) = 0,02×0,95 + 0,98×0,10 = 0,019 + 0,098 = 0,117. 2) P<sub>T</sub>(M) = P(M ∩ T) / P(T) = 0,019 / 0,117 ≈ 0,162. Même avec un test positif, la probabilité d’être malade n’est que d’environ 16 %.</p></details></section></article>
+<article class="chapter" id="variables-aleatoires"><span class="dom">Probabilités</span><h2>Variables aléatoires</h2><p class="intro">Loi, espérance, variance et loi binomiale.</p><section><h3>À retenir</h3><dl class="rows"><div class="row"><dt>Loi de X</dt><dd><span class="hl">valeurs x<sub>i</sub> et probabilités p<sub>i</sub> = P(X = x<sub>i</sub>), avec Σ p<sub>i</sub> = 1</span></dd></div><div class="row"><dt>Espérance</dt><dd><span class="hl">E(X) = Σ p<sub>i</sub>·x<sub>i</sub></span></dd></div><div class="row"><dt>Variance, écart type</dt><dd><span class="hl">V(X) = Σ p<sub>i</sub>(x<sub>i</sub> − E(X))² ;  σ(X) = √V(X)</span></dd></div><div class="row"><dt>Transformation affine</dt><dd><span class="hl">E(aX + b) = a·E(X) + b ;  V(aX + b) = a²·V(X)</span></dd></div><div class="row"><dt>Loi binomiale B(n ; p)</dt><dd><span class="hl">P(X = k) = <span class="binom"><span class="bp">(</span><span class="fr nb"><span>n</span><span>k</span></span><span class="bp">)</span></span> p<sup>k</sup>(1 − p)<sup>n−k</sup> ;  E(X) = np ;  V(X) = np(1 − p)</span></dd></div><div class="row"><dt>Coefficients binomiaux</dt><dd><span class="hl"><span class="binom"><span class="bp">(</span><span class="fr nb"><span>n</span><span>0</span></span><span class="bp">)</span></span> = 1 ;  <span class="binom"><span class="bp">(</span><span class="fr nb"><span>n</span><span>1</span></span><span class="bp">)</span></span> = n ;  <span class="binom"><span class="bp">(</span><span class="fr nb"><span>n</span><span>k</span></span><span class="bp">)</span></span> = <span class="binom"><span class="bp">(</span><span class="fr nb"><span>n</span><span>n − k</span></span><span class="bp">)</span></span> ;  triangle de Pascal pour les petites valeurs de n</span></dd></div></dl></section><p class="meth"><b>Méthode</b>Pour reconnaître une loi binomiale : on répète n fois la même expérience, de façon indépendante, avec deux issues (succès de probabilité p ou échec). X compte le nombre de succès.</p><section class="quiz"><h3>Quiz</h3><div class="qcard"><p class="qn">Question 1</p><p class="qtext">X prend les valeurs 0, 1 et 2 avec les probabilités 0,5 ; 0,3 et 0,2. Que vaut E(X) ?</p><div class="opts sopts"><input class="rd" type="radio" name="variables-aleatoires-q0" id="variables-aleatoires-q0-0"><input class="rd" type="radio" name="variables-aleatoires-q0" id="variables-aleatoires-q0-1"><input class="rd" type="radio" name="variables-aleatoires-q0" id="variables-aleatoires-q0-2"><label class="opt" data-c="ok" for="variables-aleatoires-q0-0"><span class="l">A</span><span class="t">0,7</span></label><label class="opt" data-c="ko" for="variables-aleatoires-q0-1"><span class="l">B</span><span class="t">1</span></label><label class="opt" data-c="ko" for="variables-aleatoires-q0-2"><span class="l">C</span><span class="t">0,3</span></label><p class="expl"><b>Réponse A.</b> E(X) = 0×0,5 + 1×0,3 + 2×0,2 = 0,3 + 0,4 = 0,7.</p></div></div><div class="qcard"><p class="qn">Question 2</p><p class="qtext">X suit la loi binomiale B(10 ; 0,3). Que vaut E(X) ?</p><div class="opts sopts"><input class="rd" type="radio" name="variables-aleatoires-q1" id="variables-aleatoires-q1-0"><input class="rd" type="radio" name="variables-aleatoires-q1" id="variables-aleatoires-q1-1"><input class="rd" type="radio" name="variables-aleatoires-q1" id="variables-aleatoires-q1-2"><label class="opt" data-c="ko" for="variables-aleatoires-q1-0"><span class="l">A</span><span class="t">0,3</span></label><label class="opt" data-c="ok" for="variables-aleatoires-q1-1"><span class="l">B</span><span class="t">3</span></label><label class="opt" data-c="ko" for="variables-aleatoires-q1-2"><span class="l">C</span><span class="t">7</span></label><p class="expl"><b>Réponse B.</b> E(X) = np = 10 × 0,3 = 3.</p></div></div><div class="qcard"><p class="qn">Question 3</p><p class="qtext">X suit la loi binomiale B(3 ; 0,5). Que vaut P(X = 2) ?</p><div class="opts sopts"><input class="rd" type="radio" name="variables-aleatoires-q2" id="variables-aleatoires-q2-0"><input class="rd" type="radio" name="variables-aleatoires-q2" id="variables-aleatoires-q2-1"><input class="rd" type="radio" name="variables-aleatoires-q2" id="variables-aleatoires-q2-2"><label class="opt" data-c="ko" for="variables-aleatoires-q2-0"><span class="l">A</span><span class="t">0,25</span></label><label class="opt" data-c="ko" for="variables-aleatoires-q2-1"><span class="l">B</span><span class="t">0,5</span></label><label class="opt" data-c="ok" for="variables-aleatoires-q2-2"><span class="l">C</span><span class="t">0,375</span></label><p class="expl"><b>Réponse C.</b> <span class="binom"><span class="bp">(</span><span class="fr nb"><span>3</span><span>2</span></span><span class="bp">)</span></span> × 0,5² × 0,5 = 3 × 0,125 = 0,375.</p></div></div></section><section class="ex"><h3>Exercice</h3><p class="enonce">On lance 4 fois une pièce équilibrée. X est le nombre de « Pile » obtenus. 1) Quelle est la loi de X ? 2) Calculer P(X = 2) et P(X ≥ 1). 3) Donner E(X).</p><details><summary>Voir la correction</summary><p class="corr">1) Ce sont 4 répétitions indépendantes d’une expérience à deux issues, avec « Pile » de probabilité 1/2 : X suit la loi B(4 ; 1/2). 2) P(X = 2) = 6 × (1/2)<sup>4</sup> = 6/16 = 3/8. P(X ≥ 1) = 1 − P(X = 0) = 1 − 1/16 = 15/16. 3) E(X) = 4 × 1/2 = 2.</p></details></section></article></main>
+  <footer class="foot">
+    <p>Ta progression reste enregistrée sur cet appareil.</p>
+    <button class="btn quiet" id="reset" type="button">Effacer ma progression</button>
+  </footer>
+</div>
+
+<script>
+const fr=(a,b)=>`<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+const bi=(n,k)=>`<span class="binom"><span class="bp">(</span><span class="fr nb"><span>${n}</span><span>${k}</span></span><span class="bp">)</span></span>`;
+const V=s=>`<span class="vec">${s}</span>`;
+const O=s=>`<span class="ov">${s}</span>`;
+
+const CH=[
+{id:'second-degre',t:'Second degré',d:'Algèbre',
+ intro:'Trinômes, discriminant, signe : la boîte à outils pour résoudre et étudier ax² + bx + c.',
+ retenir:[
+  ['Forme développée','f(x) = ax² + bx + c   (a ≠ 0)'],
+  ['Discriminant','Δ = b² − 4ac'],
+  ['Si Δ > 0',`deux racines  x<sub>1</sub> = ${fr('−b − √Δ','2a')}  et  x<sub>2</sub> = ${fr('−b + √Δ','2a')}`],
+  ['Si Δ = 0',`une racine double  x<sub>0</sub> = ${fr('−b','2a')}`],
+  ['Si Δ < 0','aucune racine réelle : f garde le signe de a'],
+  ['Forme canonique',`f(x) = a(x − α)² + β   avec α = ${fr('−b','2a')}  et  β = f(α)`],
+  ['Signe si Δ > 0','signe de a à l’extérieur des racines, signe de −a entre les racines'],
+  ['Somme et produit',`x<sub>1</sub> + x<sub>2</sub> = ${fr('−b','a')}   et   x<sub>1</sub>·x<sub>2</sub> = ${fr('c','a')}`]
+ ],
+ methode:'Pour résoudre une inéquation du second degré : calcule Δ, trouve les racines, dessine l’allure de la parabole (a > 0 : bras vers le haut), puis lis le signe sur le dessin.',
+ quiz:[
+  {q:'Combien de racines réelles a 2x² − 4x + 5 ?',o:['Aucune','Une','Deux'],a:0,e:'Δ = (−4)² − 4×2×5 = 16 − 40 = −24 < 0 : pas de racine réelle.'},
+  {q:'Quelles sont les racines de x² − 5x + 6 ?',o:['−2 et −3','2 et 3','1 et 6'],a:1,e:'Somme = 5 et produit = 6, donc les racines sont 2 et 3. (Δ = 25 − 24 = 1.)'},
+  {q:'Quelle est la forme canonique de x² − 6x + 1 ?',o:['(x − 3)² + 1','(x + 3)² − 8','(x − 3)² − 8'],a:2,e:'α = 3 et β = f(3) = 9 − 18 + 1 = −8. Donc f(x) = (x − 3)² − 8.'}
+ ],
+ ex:{n:'Résoudre dans ℝ l’inéquation 2x² − x − 3 ≥ 0.',
+  c:'Δ = (−1)² − 4×2×(−3) = 1 + 24 = 25, donc √Δ = 5. Racines : x<sub>1</sub> = (1 − 5)/4 = −1 et x<sub>2</sub> = (1 + 5)/4 = 3/2. Comme a = 2 > 0, le trinôme est positif à l’extérieur des racines. Ensemble des solutions : S = ]−∞ ; −1] ∪ [3/2 ; +∞[.'}
+},
+{id:'suites',t:'Suites',d:'Algèbre',
+ intro:'Suites arithmétiques et géométriques : formules explicites, sommes et sens de variation.',
+ retenir:[
+  ['Suite arithmétique','u<sub>n+1</sub> = u<sub>n</sub> + r   ⇒   u<sub>n</sub> = u<sub>0</sub> + n·r'],
+  ['Somme arithmétique',`u<sub>0</sub> + … + u<sub>n</sub> = (n + 1) × ${fr('u<sub>0</sub> + u<sub>n</sub>','2')}`],
+  ['Suite géométrique','u<sub>n+1</sub> = q·u<sub>n</sub>   ⇒   u<sub>n</sub> = u<sub>0</sub>·q<sup>n</sup>'],
+  ['Somme géométrique (q ≠ 1)',`1 + q + … + q<sup>n</sup> = ${fr('1 − q<sup>n+1</sup>','1 − q')}`],
+  ['Sens de variation','étudier le signe de u<sub>n+1</sub> − u<sub>n</sub>. Pour une suite géométrique avec u<sub>0</sub> > 0 : croissante si q > 1, décroissante si 0 < q < 1.']
+ ],
+ methode:'Pour reconnaître une suite géométrique, calcule le quotient u<sub>n+1</sub> / u<sub>n</sub> : s’il est constant, c’est la raison q. Pour une suite arithmétique, calcule la différence u<sub>n+1</sub> − u<sub>n</sub>.',
+ quiz:[
+  {q:'Suite arithmétique de premier terme u<sub>0</sub> = 5 et de raison 3. Que vaut u<sub>10</sub> ?',o:['30','35','38'],a:1,e:'u<sub>10</sub> = 5 + 10×3 = 35.'},
+  {q:'Suite géométrique avec u<sub>0</sub> = 2 et q = 3. Que vaut u<sub>4</sub> ?',o:['162','54','24'],a:0,e:'u<sub>4</sub> = 2×3<sup>4</sup> = 2×81 = 162.'},
+  {q:'Que vaut 1 + 2 + 4 + … + 2<sup>9</sup> ?',o:['511','1024','1023'],a:2,e:'Somme géométrique de raison 2 : (1 − 2<sup>10</sup>)/(1 − 2) = 2<sup>10</sup> − 1 = 1023.'}
+ ],
+ ex:{n:'Un capital de 1 000 € est placé à 5 % par an, intérêts composés. On note u<sub>n</sub> le capital après n années. 1) Quelle est la nature de la suite (u<sub>n</sub>) ? Donne u<sub>n</sub> en fonction de n. 2) À partir de quelle année le capital dépasse-t-il 1 500 € ?',
+  c:'1) Chaque année, le capital est multiplié par 1,05 : u<sub>n+1</sub> = 1,05·u<sub>n</sub>. La suite est géométrique de raison 1,05 et de premier terme u<sub>0</sub> = 1 000, donc u<sub>n</sub> = 1 000 × 1,05<sup>n</sup>. 2) À la calculatrice : u<sub>8</sub> ≈ 1 477,46 < 1 500 et u<sub>9</sub> ≈ 1 551,33 > 1 500. La suite est croissante (q > 1), donc le capital dépasse 1 500 € dès la 9<sup>e</sup> année.'}
+},
+{id:'derivation',t:'Dérivation',d:'Analyse',
+ intro:'Nombre dérivé, tangente, règles de calcul et tableau de variations.',
+ retenir:[
+  ['Nombre dérivé',`f′(a) = lim<sub>h→0</sub> ${fr('f(a + h) − f(a)','h')}`],
+  ['Tangente en a','y = f′(a)(x − a) + f(a)'],
+  ['Dérivées usuelles',`(k)′ = 0 ;  (x)′ = 1 ;  (x<sup>n</sup>)′ = n·x<sup>n−1</sup> ;  (${fr('1','x')})′ = ${fr('−1','x²')} ;  (√x)′ = ${fr('1','2√x')}`],
+  ['Opérations',`(u + v)′ = u′ + v′ ;  (ku)′ = k·u′ ;  (uv)′ = u′v + uv′ ;  (${fr('u','v')})′ = ${fr('u′v − uv′','v²')}`],
+  ['Variations','f′ ≥ 0 sur I ⇒ f croissante sur I ;  f′ ≤ 0 sur I ⇒ f décroissante sur I'],
+  ['Extremum','si f′ s’annule en changeant de signe en a, f admet un extremum local en a']
+ ],
+ methode:'Pour dresser un tableau de variations : calcule f′, factorise-la, étudie son signe, déduis-en le sens de variation de f, puis calcule les valeurs aux points clés.',
+ quiz:[
+  {q:'Quelle est la dérivée de f(x) = 3x² − 5x + 1 ?',o:['3x − 5','6x − 5','6x² − 5x'],a:1,e:'(3x²)′ = 6x, (−5x)′ = −5 et (1)′ = 0.'},
+  {q:'Quelle est la dérivée de f(x) = (x + 1)(2x − 3) ?',o:['2','2x − 3','4x − 1'],a:2,e:'(uv)′ = u′v + uv′ = 1×(2x − 3) + (x + 1)×2 = 4x − 1. On retrouve le même résultat en développant : 2x² − x − 3.'},
+  {q:'Quelle est l’équation de la tangente à la courbe de f(x) = x² au point d’abscisse 2 ?',o:['y = 4x − 4','y = 4x + 4','y = 2x'],a:0,e:'f(2) = 4 et f′(2) = 4, donc y = 4(x − 2) + 4 = 4x − 4.'}
+ ],
+ ex:{n:'Soit f(x) = x³ − 3x² + 1 sur ℝ. Étudier les variations de f.',
+  c:'f′(x) = 3x² − 6x = 3x(x − 2). C’est un trinôme de racines 0 et 2, avec 3 > 0 : f′ est positive sur ]−∞ ; 0[ et sur ]2 ; +∞[, négative sur ]0 ; 2[. Donc f est croissante sur ]−∞ ; 0], décroissante sur [0 ; 2], puis croissante sur [2 ; +∞[. Extremums locaux : f(0) = 1 (maximum) et f(2) = 8 − 12 + 1 = −3 (minimum).'}
+},
+{id:'exponentielle',t:'Exponentielle',d:'Analyse',
+ intro:'La fonction qui est sa propre dérivée, ses règles de calcul et son signe.',
+ retenir:[
+  ['Définition','exp est l’unique fonction dérivable sur ℝ telle que f′ = f et f(0) = 1. On note exp(x) = e<sup>x</sup>.'],
+  ['Signe et variations','e<sup>x</sup> > 0 pour tout réel x ; exp est strictement croissante sur ℝ.'],
+  ['Règles de calcul',`e<sup>a+b</sup> = e<sup>a</sup>·e<sup>b</sup> ;  e<sup>−a</sup> = ${fr('1','e<sup>a</sup>')} ;  (e<sup>a</sup>)<sup>n</sup> = e<sup>na</sup>`],
+  ['Valeurs','e⁰ = 1 ;  e¹ = e ≈ 2,718'],
+  ['Dérivée','(e<sup>u</sup>)′ = u′·e<sup>u</sup> ;  en particulier (e<sup>kx</sup>)′ = k·e<sup>kx</sup>'],
+  ['Équations et inéquations','e<sup>a</sup> = e<sup>b</sup> ⇔ a = b ;  e<sup>a</sup> < e<sup>b</sup> ⇔ a < b']
+ ],
+ methode:'Pour étudier une fonction du type (ax + b)e<sup>x</sup> : dérive avec la formule du produit, factorise par e<sup>x</sup>, puis utilise e<sup>x</sup> > 0. Le signe de f′ est celui du facteur qui reste.',
+ quiz:[
+  {q:'Simplifier e<sup>3</sup> × e<sup>−5</sup>.',o:['e<sup>−1</sup>','e<sup>−2</sup>','e<sup>−15</sup>'],a:1,e:'e<sup>3</sup> × e<sup>−5</sup> = e<sup>3 + (−5)</sup> = e<sup>−2</sup>.'},
+  {q:'Quelle est la dérivée de f(x) = e<sup>2x+1</sup> ?',o:['e<sup>2x+1</sup>','2e<sup>2x+1</sup>','(2x + 1)e<sup>2x</sup>'],a:1,e:'(e<sup>u</sup>)′ = u′·e<sup>u</sup> avec u = 2x + 1 et u′ = 2.'},
+  {q:'Résoudre e<sup>2x</sup> = e<sup>x+3</sup>.',o:['x = 3','x = −3','x = 1'],a:0,e:'e<sup>2x</sup> = e<sup>x+3</sup> ⇔ 2x = x + 3 ⇔ x = 3.'}
+ ],
+ ex:{n:'Soit f(x) = (x − 1)e<sup>x</sup> sur ℝ. Étudier les variations de f.',
+  c:'f = uv avec u = x − 1 et v = e<sup>x</sup>. Alors f′(x) = 1×e<sup>x</sup> + (x − 1)e<sup>x</sup> = x·e<sup>x</sup>. Comme e<sup>x</sup> > 0, f′(x) a le signe de x. Donc f est décroissante sur ]−∞ ; 0] et croissante sur [0 ; +∞[. Son minimum est f(0) = −1.'}
+},
+{id:'trigonometrie',t:'Trigonométrie',d:'Analyse',
+ intro:'Radians, cercle trigonométrique, valeurs remarquables et équations.',
+ retenir:[
+  ['Conversion','π rad = 180° ;  30° = π/6 ;  45° = π/4 ;  60° = π/3 ;  90° = π/2'],
+  ['Valeurs remarquables',`<div class="tbl"><table><tr><th>x</th><td>0</td><td>π/6</td><td>π/4</td><td>π/3</td><td>π/2</td></tr><tr><th>cos x</th><td>1</td><td>${fr('√3','2')}</td><td>${fr('√2','2')}</td><td>${fr('1','2')}</td><td>0</td></tr><tr><th>sin x</th><td>0</td><td>${fr('1','2')}</td><td>${fr('√2','2')}</td><td>${fr('√3','2')}</td><td>1</td></tr></table></div>`],
+  ['Relation fondamentale','cos²x + sin²x = 1'],
+  ['Symétries','cos(−x) = cos x ;  sin(−x) = −sin x ;  cos(π − x) = −cos x ;  sin(π − x) = sin x'],
+  ['Périodicité','cos(x + 2π) = cos x ;  sin(x + 2π) = sin x'],
+  ['Dérivées','cos′ = −sin ;  sin′ = cos'],
+  ['Équations','cos x = cos a ⇔ x = a + 2kπ ou x = −a + 2kπ ;  sin x = sin a ⇔ x = a + 2kπ ou x = π − a + 2kπ   (k ∈ ℤ)']
+ ],
+ methode:'Pour une équation trigonométrique, ramène-toi à cos x = cos a ou sin x = sin a avec une valeur remarquable. Écris toutes les solutions modulo 2π, puis garde celles de l’intervalle demandé.',
+ quiz:[
+  {q:'120° en radians, ça fait combien ?',o:['π/3','2π/3','3π/4'],a:1,e:'120° = 120 × π/180 = 2π/3.'},
+  {q:'Que vaut sin(π/3) ?',o:['1/2','√3/2','√2/2'],a:1,e:'C’est une valeur remarquable : sin(π/3) = √3/2 et cos(π/3) = 1/2.'},
+  {q:'On sait que cos x = 3/5 avec x ∈ [0 ; π]. Que vaut sin x ?',o:['−4/5','2/5','4/5'],a:2,e:'sin²x = 1 − 9/25 = 16/25. Sur [0 ; π], sin x ≥ 0, donc sin x = 4/5.'}
+ ],
+ ex:{n:'Résoudre 2cos x − 1 = 0 sur ]−π ; π].',
+  c:'L’équation équivaut à cos x = 1/2 = cos(π/3). Donc x = π/3 + 2kπ ou x = −π/3 + 2kπ. Dans ]−π ; π], on garde k = 0 : S = {−π/3 ; π/3}.'}
+},
+{id:'produit-scalaire',t:'Produit scalaire',d:'Géométrie',
+ intro:'Orthogonalité, longueurs, angles, droites et cercles dans un repère orthonormé.',
+ retenir:[
+  ['Définition',`${V('u')}·${V('v')} = ‖${V('u')}‖ × ‖${V('v')}‖ × cos(${V('u')}, ${V('v')})`],
+  ['En coordonnées',`${V('u')}(x ; y) et ${V('v')}(x′ ; y′) :  ${V('u')}·${V('v')} = xx′ + yy′`],
+  ['Orthogonalité',`${V('u')}·${V('v')} = 0 ⇔ ${V('u')} et ${V('v')} sont orthogonaux`],
+  ['Norme',`‖${V('u')}‖² = ${V('u')}·${V('u')} = x² + y²`],
+  ['Développement',`‖${V('u')} + ${V('v')}‖² = ‖${V('u')}‖² + 2 ${V('u')}·${V('v')} + ‖${V('v')}‖²`],
+  ['Al-Kashi','BC² = AB² + AC² − 2·AB·AC·cos Â'],
+  ['Cercle','centre Ω(a ; b) et rayon r :  (x − a)² + (y − b)² = r²'],
+  ['Droite','de vecteur normal n(a ; b) :  ax + by + c = 0']
+ ],
+ methode:`Pour montrer que deux droites sont perpendiculaires, calcule le produit scalaire de leurs vecteurs directeurs : s’il est nul, elles le sont. Pour un cercle de diamètre [AB], un point M appartient au cercle ⇔ ${V('MA')}·${V('MB')} = 0.`,
+ quiz:[
+  {q:`${V('u')}(2 ; 3) et ${V('v')}(4 ; −1). Que vaut ${V('u')}·${V('v')} ?`,o:['5','11','−5'],a:0,e:'2×4 + 3×(−1) = 8 − 3 = 5.'},
+  {q:`Pour quelle valeur de k les vecteurs ${V('u')}(3 ; k) et ${V('v')}(2 ; 6) sont-ils orthogonaux ?`,o:['k = 1','k = −1','k = −1/3'],a:1,e:'3×2 + k×6 = 0 ⇔ 6 + 6k = 0 ⇔ k = −1.'},
+  {q:'Dans le triangle ABC : AB = 5, AC = 8 et l’angle Â = 60°. Que vaut BC ?',o:['7','√89','√129'],a:0,e:'BC² = 25 + 64 − 2×5×8×cos 60° = 89 − 40 = 49, donc BC = 7.'}
+ ],
+ ex:{n:'Dans un repère orthonormé, A(1 ; 2) et B(5 ; 4). Déterminer l’équation du cercle de diamètre [AB].',
+  c:`Le centre est le milieu de [AB] : Ω(3 ; 3). Le rayon vérifie AB = √(4² + 2²) = √20, donc r = √20 / 2 et r² = 5. Équation : (x − 3)² + (y − 3)² = 5. Vérification avec le produit scalaire : ${V('MA')}·${V('MB')} = (1 − x)(5 − x) + (2 − y)(4 − y) = x² − 6x + y² − 6y + 13, qui s’annule exactement quand (x − 3)² + (y − 3)² = 5.`}
+},
+{id:'probabilites-conditionnelles',t:'Probabilités conditionnelles',d:'Probabilités',
+ intro:'Arbres pondérés, formule des probabilités totales et indépendance.',
+ retenir:[
+  ['Probabilité conditionnelle',`P<sub>A</sub>(B) = ${fr('P(A ∩ B)','P(A)')}   (P(A) ≠ 0)`],
+  ['Formule des produits','P(A ∩ B) = P(A) × P<sub>A</sub>(B)'],
+  ['Probabilités totales',`P(B) = P(A ∩ B) + P(${O('A')} ∩ B) = P(A)·P<sub>A</sub>(B) + P(${O('A')})·P<sub>${O('A')}</sub>(B)`],
+  ['Arbre pondéré','la somme des probabilités des branches issues d’un même nœud vaut 1 ; on multiplie le long d’un chemin, on additionne les chemins qui mènent à l’événement.'],
+  ['Indépendance','A et B indépendants ⇔ P(A ∩ B) = P(A) × P(B) ⇔ P<sub>A</sub>(B) = P(B)']
+ ],
+ methode:'Devant un énoncé : nomme les événements, dessine l’arbre, place les probabilités données, puis complète. Pour renverser un conditionnement, utilise P<sub>B</sub>(A) = P(A ∩ B) / P(B).',
+ quiz:[
+  {q:'P(A) = 0,4 et P<sub>A</sub>(B) = 0,5. Que vaut P(A ∩ B) ?',o:['0,9','0,2','0,8'],a:1,e:'P(A ∩ B) = P(A) × P<sub>A</sub>(B) = 0,4 × 0,5 = 0,2.'},
+  {q:'Une urne contient 3 boules rouges et 2 boules bleues. On tire deux boules sans remise. Quelle est la probabilité d’obtenir deux boules rouges ?',o:['3/10','9/25','3/5'],a:0,e:'3/5 × 2/4 = 6/20 = 3/10. (9/25 correspondrait à un tirage avec remise.)'},
+  {q:'P(A) = 0,3 ; P(B) = 0,4 et P(A ∩ B) = 0,12. A et B sont-ils indépendants ?',o:['Oui','Non','On ne peut pas savoir'],a:0,e:'P(A) × P(B) = 0,3 × 0,4 = 0,12 = P(A ∩ B) : les événements sont indépendants.'}
+ ],
+ ex:{n:`Une maladie touche 2 % d’une population. Un test est positif dans 95 % des cas chez un malade et dans 10 % des cas chez une personne saine. On note M « la personne est malade » et T « le test est positif ». 1) Calculer P(T). 2) Calculer P<sub>T</sub>(M) et interpréter.`,
+  c:`1) Probabilités totales : P(T) = P(M)×P<sub>M</sub>(T) + P(${O('M')})×P<sub>${O('M')}</sub>(T) = 0,02×0,95 + 0,98×0,10 = 0,019 + 0,098 = 0,117. 2) P<sub>T</sub>(M) = P(M ∩ T) / P(T) = 0,019 / 0,117 ≈ 0,162. Même avec un test positif, la probabilité d’être malade n’est que d’environ 16 %.`}
+},
+{id:'variables-aleatoires',t:'Variables aléatoires',d:'Probabilités',
+ intro:'Loi, espérance, variance et loi binomiale.',
+ retenir:[
+  ['Loi de X','valeurs x<sub>i</sub> et probabilités p<sub>i</sub> = P(X = x<sub>i</sub>), avec Σ p<sub>i</sub> = 1'],
+  ['Espérance','E(X) = Σ p<sub>i</sub>·x<sub>i</sub>'],
+  ['Variance, écart type','V(X) = Σ p<sub>i</sub>(x<sub>i</sub> − E(X))² ;  σ(X) = √V(X)'],
+  ['Transformation affine','E(aX + b) = a·E(X) + b ;  V(aX + b) = a²·V(X)'],
+  ['Loi binomiale B(n ; p)',`P(X = k) = ${bi('n','k')} p<sup>k</sup>(1 − p)<sup>n−k</sup> ;  E(X) = np ;  V(X) = np(1 − p)`],
+  ['Coefficients binomiaux',`${bi('n','0')} = 1 ;  ${bi('n','1')} = n ;  ${bi('n','k')} = ${bi('n','n − k')} ;  triangle de Pascal pour les petites valeurs de n`]
+ ],
+ methode:'Pour reconnaître une loi binomiale : on répète n fois la même expérience, de façon indépendante, avec deux issues (succès de probabilité p ou échec). X compte le nombre de succès.',
+ quiz:[
+  {q:'X prend les valeurs 0, 1 et 2 avec les probabilités 0,5 ; 0,3 et 0,2. Que vaut E(X) ?',o:['0,7','1','0,3'],a:0,e:'E(X) = 0×0,5 + 1×0,3 + 2×0,2 = 0,3 + 0,4 = 0,7.'},
+  {q:'X suit la loi binomiale B(10 ; 0,3). Que vaut E(X) ?',o:['0,3','3','7'],a:1,e:'E(X) = np = 10 × 0,3 = 3.'},
+  {q:'X suit la loi binomiale B(3 ; 0,5). Que vaut P(X = 2) ?',o:['0,25','0,5','0,375'],a:2,e:`${bi('3','2')} × 0,5² × 0,5 = 3 × 0,125 = 0,375.`}
+ ],
+ ex:{n:'On lance 4 fois une pièce équilibrée. X est le nombre de « Pile » obtenus. 1) Quelle est la loi de X ? 2) Calculer P(X = 2) et P(X ≥ 1). 3) Donner E(X).',
+  c:'1) Ce sont 4 répétitions indépendantes d’une expérience à deux issues, avec « Pile » de probabilité 1/2 : X suit la loi B(4 ; 1/2). 2) P(X = 2) = 6 × (1/2)<sup>4</sup> = 6/16 = 3/8. P(X ≥ 1) = 1 − P(X = 0) = 1 − 1/16 = 15/16. 3) E(X) = 4 × 1/2 = 2.'}
+}
+];
+
+const TOTAL=CH.reduce((s,c)=>s+c.quiz.length,0);
+const $=s=>document.querySelector(s);
+let cur=0, prog={};
+try{ prog=JSON.parse(localStorage.getItem('maths1-prog')||'{}')||{}; const c=parseInt(localStorage.getItem('maths1-cur')||'0',10); if(c>=0&&c<CH.length) cur=c; }catch(e){}
+function save(){ try{ localStorage.setItem('maths1-prog',JSON.stringify(prog)); localStorage.setItem('maths1-cur',String(cur)); }catch(e){} }
+
+const answered=c=>c.quiz.filter((_,i)=>(prog[c.id]||{})[i]!==undefined).length;
+const right=c=>c.quiz.filter((q,i)=>(prog[c.id]||{})[i]===q.a).length;
+const isDone=c=>answered(c)===c.quiz.length;
+
+function explHTML(c,i){
+  const a=(prog[c.id]||{})[i];
+  if(a===undefined) return '';
+  const q=c.quiz[i];
+  return `<p class="expl"><b>${a===q.a?'Bonne réponse.':'Pas tout à fait.'}</b> ${q.e}</p>`;
+}
+function quizHTML(c){
+  const p=prog[c.id]||{};
+  return c.quiz.map((q,i)=>{
+    const a=p[i], done=a!==undefined;
+    const opts=q.o.map((o,j)=>{
+      let cls='opt'; if(done){ if(j===q.a) cls+=' ok'; else if(j===a) cls+=' ko'; }
+      return `<button type="button" class="${cls}" data-q="${i}" data-o="${j}"${done?' disabled':''}><span class="l">${'ABC'[j]}</span><span class="t">${o}</span></button>`;
+    }).join('');
+    return `<div class="qcard"><p class="qn">Question ${i+1}</p><p class="qtext">${q.q}</p><div class="opts">${opts}</div><div class="slot" aria-live="polite">${explHTML(c,i)}</div></div>`;
+  }).join('');
+}
+function scoreText(c){
+  const n=answered(c);
+  if(n===0) return 'Réponds aux 3 questions pour valider le chapitre.';
+  if(n<c.quiz.length) return `${n} question${n>1?'s':''} sur ${c.quiz.length} traitée${n>1?'s':''}.`;
+  return `Quiz terminé : ${right(c)} bonne${right(c)>1?'s':''} réponse${right(c)>1?'s':''} sur ${c.quiz.length}.`;
+}
+function renderNav(){
+  const nav=$('#nav'), x=nav.scrollLeft;
+  nav.innerHTML=CH.map((c,i)=>`<button type="button" class="chip${isDone(c)?' done':''}" data-i="${i}" aria-current="${i===cur}"><span>${c.t}</span><small>${c.d}</small></button>`).join('');
+  nav.scrollLeft=x;
+}
+function renderProg(){
+  const a=CH.reduce((s,c)=>s+answered(c),0), r=CH.reduce((s,c)=>s+right(c),0);
+  $('#barfill').style.width=(100*a/TOTAL)+'%';
+  $('#pbar').setAttribute('aria-valuenow',a);
+  $('#progtxt').textContent=`${a} question${a>1?'s':''} sur ${TOTAL} traitée${a>1?'s':''} · ${r} bonne${r>1?'s':''} réponse${r>1?'s':''}`;
+}
+function renderChap(){
+  const c=CH[cur];
+  const rows=c.retenir.map(([k,v])=>`<div class="row"><dt>${k}</dt><dd>${v.startsWith('<div')?v:`<span class="hl">${v}</span>`}</dd></div>`).join('');
+  const prev=cur>0?`<button type="button" class="btn" data-go="-1">← ${CH[cur-1].t}</button>`:'<span></span>';
+  const next=cur<CH.length-1?`<button type="button" class="btn" data-go="1">${CH[cur+1].t} →</button>`:'<span></span>';
+  $('#chap').innerHTML=`
+    <span class="dom">${c.d}</span>
+    <h2>${c.t}</h2>
+    <p class="intro">${c.intro}</p>
+    <section><h3>À retenir</h3><dl class="rows">${rows}</dl></section>
+    <p class="meth"><b>Méthode</b>${c.methode}</p>
+    <section class="quiz"><h3>Quiz</h3>${quizHTML(c)}
+      <div class="scorebar"><p id="score">${scoreText(c)}</p><button type="button" class="btn quiet" id="retry"${answered(c)?'':' hidden'}>Refaire le quiz</button></div>
+    </section>
+    <section class="ex"><h3>Exercice</h3><p class="enonce">${c.ex.n}</p>
+      <details><summary>Voir la correction</summary><p class="corr">${c.ex.c}</p></details>
+    </section>
+    <div class="pager">${prev}${next}</div>`;
+}
+function renderAll(){ renderNav(); renderProg(); renderChap(); }
+
+document.addEventListener('click',e=>{
+  const chip=e.target.closest('.chip');
+  if(chip){ cur=+chip.dataset.i; save(); renderAll(); window.scrollTo(0,0); return; }
+  const go=e.target.closest('[data-go]');
+  if(go){ cur=Math.max(0,Math.min(CH.length-1,cur+(+go.dataset.go))); save(); renderAll(); window.scrollTo(0,0); return; }
+  const opt=e.target.closest('.opt');
+  if(opt&&!opt.disabled){
+    const c=CH[cur], i=+opt.dataset.q, j=+opt.dataset.o, card=opt.closest('.qcard');
+    (prog[c.id]=prog[c.id]||{})[i]=j; save();
+    card.querySelectorAll('.opt').forEach((b,k)=>{ b.disabled=true; if(k===c.quiz[i].a) b.classList.add('ok'); else if(k===j) b.classList.add('ko'); });
+    card.querySelector('.slot').innerHTML=explHTML(c,i);
+    $('#score').textContent=scoreText(c); $('#retry').hidden=false;
+    renderNav(); renderProg(); return;
+  }
+  if(e.target.id==='retry'){ delete prog[CH[cur].id]; save(); renderAll(); return; }
+  if(e.target.id==='reset'){
+    const b=e.target;
+    if(b.dataset.armed){ prog={}; cur=0; save(); renderAll(); b.textContent='Effacer ma progression'; delete b.dataset.armed; window.scrollTo(0,0); }
+    else{ b.dataset.armed='1'; b.textContent='Cliquer à nouveau pour confirmer'; setTimeout(()=>{ b.textContent='Effacer ma progression'; delete b.dataset.armed; },4000); }
+  }
+});
+renderAll();
+document.querySelector('.sheet').classList.add('js');
+</script>
+
+</body></html>
