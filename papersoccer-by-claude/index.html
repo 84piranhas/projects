@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Paper Soccer</title>
+<style>
+  :root {
+    --bg: #eef2ef;
+    --surface: #ffffff;
+    --text: #12201a;
+    --muted: #4a5a51;
+    --line: #cfd9d2;
+    --p1: #8fcbff;
+    --p2: #ffb35a;
+    --on-p: #0c1a12;
+    --pitch-a: #2b7338;
+    --pitch-b: #286b34;
+    --runoff: #1f5a2b;
+    --danger: #c62828;
+    --shadow: 0 6px 24px rgba(0,0,0,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1411;
+      --surface: #19221d;
+      --text: #e4ede7;
+      --muted: #9fb2a7;
+      --line: #2e3d34;
+      --pitch-a: #256433;
+      --pitch-b: #225e30;
+      --runoff: #183f22;
+      --danger: #ff6b6b;
+      --shadow: 0 6px 24px rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app {
+    height: 100vh;
+    height: 100dvh;
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ---------- header ---------- */
+  header { padding: 8px 8px 2px; }
+  .scoreboard {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+    gap: 6px;
+    align-items: center;
+  }
+  .pl {
+    display: flex; align-items: center; gap: 6px;
+    min-width: 0; padding: 4px 6px;
+    border: 2px solid transparent; border-radius: 10px;
+    transition: background .2s, border-color .2s;
+  }
+  .pl.p2 { flex-direction: row-reverse; }
+  .pl.p1 { --pc: var(--p1); }
+  .pl.p2 { --pc: var(--p2); }
+  .pl.active { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 22%, transparent); }
+  .pl .names { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .pl.p2 .names { align-items: flex-end; }
+  .pl input {
+    width: 100%; min-width: 0;
+    font: inherit; font-size: 16px; font-weight: 600;
+    color: inherit; background: transparent;
+    border: 0; border-bottom: 1px dashed var(--line);
+    padding: 2px 0; border-radius: 0;
+  }
+  .pl.p2 input { text-align: right; }
+  .pl input:focus { outline: none; border-bottom-color: var(--text); }
+  .clock { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); }
+  .clock.low { color: var(--danger); font-weight: 700; }
+  .chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 22px; padding: 0 6px;
+    border-radius: 6px; font-size: 12px; font-weight: 800;
+    color: var(--on-p); flex: none;
+  }
+  .chip.p1 { background: var(--p1); }
+  .chip.p2 { background: var(--p2); }
+  .score { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
+  .score small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .status {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 30px; margin-top: 4px; font-size: 15px;
+  }
+  .status .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55vw; }
+  .extra {
+    font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+    padding: 3px 8px; border-radius: 999px;
+    background: var(--text); color: var(--bg);
+    animation: pop .3s ease-out;
+  }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } }
+
+  /* ---------- board ---------- */
+  main { flex: 1; min-height: 0; position: relative; padding: 2px 4px; }
+  #board { width: 100%; height: 100%; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; cursor: default; }
+  main.shake #board { animation: shake .3s; }
+  @keyframes shake { 20%,60% { transform: translateX(-5px); } 40%,80% { transform: translateX(5px); } }
+
+  .runoff { fill: var(--runoff); }
+  .stripe.a { fill: var(--pitch-a); }
+  .stripe.b { fill: var(--pitch-b); }
+  .goalfill { fill-opacity: .85; }
+  .goalfill.p1 { fill: var(--p1); }
+  .goalfill.p2 { fill: var(--p2); }
+  .gridline { stroke: #fff; stroke-opacity: .09; stroke-width: .02; }
+  .decor { fill: none; stroke: #fff; stroke-opacity: .2; stroke-width: .035; }
+  .mouth { stroke: #fff; stroke-opacity: .85; stroke-width: .04; stroke-dasharray: .1 .09; }
+  .border { stroke: #fff; stroke-width: .1; stroke-linecap: round; }
+  .glabel { font: 800 .38px system-ui, sans-serif; fill: var(--on-p); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+
+  .seg { stroke-width: .075; stroke-linecap: round; }
+  .seg.p1 { stroke: var(--p1); }
+  .seg.p2 { stroke: var(--p2); }
+  .seg.last { stroke-width: .13; }
+  .halo { stroke: #fff; stroke-opacity: .5; stroke-width: .25; stroke-linecap: round; }
+  .seg.fresh { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: draw .2s ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  .pt { fill: #fff; fill-opacity: .45; }
+  .pt.t { fill-opacity: 1; }
+
+  .tg { fill: none; stroke-width: .06; }
+  .tg.p1 { stroke: var(--p1); }
+  .tg.p2 { stroke: var(--p2); }
+  .tg.bounce { stroke: #fff; stroke-width: .05; fill-opacity: .95; animation: pulse 1.2s ease-in-out infinite; }
+  .tg.bounce.p1 { fill: var(--p1); }
+  .tg.bounce.p2 { fill: var(--p2); }
+  .tg.goal { stroke-width: .09; stroke-dasharray: .12 .07; }
+  .tg.hover { stroke-width: .11; }
+  .tg.hover:not(.bounce) { fill: #fff; fill-opacity: .25; }
+  @keyframes pulse { 50% { fill-opacity: .55; } }
+  .preview { stroke-width: .06; stroke-dasharray: .08 .07; stroke-linecap: round; }
+  .preview.p1 { stroke: var(--p1); }
+  .preview.p2 { stroke: var(--p2); }
+
+  .ball { transition: transform .2s cubic-bezier(.3,.7,.4,1); }
+  .ball.noanim { transition: none; }
+  .ball .b { fill: #fff; stroke: #111; stroke-width: .05; }
+  .ball .c { fill: #111; }
+  @media (prefers-reduced-motion: reduce) {
+    .ball { transition: none; }
+    .seg.fresh, .tg.bounce, .extra, main.shake #board { animation: none; }
+    .seg.fresh { stroke-dashoffset: 0; }
+  }
+
+  /* ---------- end overlay ---------- */
+  .overlay {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    background: rgba(0,0,0,.32);
+    padding: 16px;
+  }
+  .card {
+    background: var(--surface); color: var(--text);
+    border-radius: 16px; box-shadow: var(--shadow);
+    padding: 20px; width: min(340px, 100%); text-align: center;
+    animation: pop .25s ease-out;
+  }
+  .card h2 { margin: 6px 0 6px; font-size: 22px; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .card p { margin: 0 0 16px; color: var(--muted); }
+  .card .row { display: flex; gap: 8px; justify-content: center; }
+
+  /* ---------- footer / buttons ---------- */
+  .legend { margin: 2px 8px 0; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.5; }
+  .legend .chip { height: 17px; min-width: 22px; font-size: 10px; padding: 0 4px; vertical-align: 1px; }
+  footer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px 8px 8px; }
+  button {
+    font: inherit; font-weight: 600; font-size: 14px;
+    min-height: 44px; padding: 6px 10px;
+    border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--p1); outline-offset: 2px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  button[aria-pressed="true"] { background: color-mix(in srgb, var(--p1) 35%, var(--surface)); }
+
+  /* ---------- rules dialog ---------- */
+  dialog {
+    border: 0; border-radius: 16px; padding: 0;
+    background: var(--surface); color: var(--text);
+    width: min(540px, calc(100vw - 24px)); max-height: 86dvh;
+    box-shadow: var(--shadow);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .dlg { padding: 18px 20px 16px; overflow: auto; max-height: 86dvh; }
+  .dlg h2 { margin: 0 0 8px; font-size: 20px; }
+  .dlg h3 { margin: 14px 0 4px; font-size: 15px; }
+  .dlg ul { margin: 4px 0; padding-left: 20px; }
+  .dlg li { margin: 3px 0; }
+  .dlg kbd { font: 12px ui-monospace, monospace; padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+  .dlg .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; justify-content: flex-end; }
+  .testbar { position: fixed; left: 8px; bottom: 8px; z-index: 9; padding: 6px 10px; border-radius: 8px; font: 12px ui-monospace, monospace; color: #fff; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="scoreboard">
+      <div class="pl p1" id="pl1">
+        <span class="chip p1" aria-hidden="true">P1</span>
+        <div class="names">
+          <input id="name1" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Player 1 name">
+          <span class="clock" id="clock1" hidden></span>
+        </div>
+      </div>
+      <div class="score" aria-label="Match score"><span id="score1">0</span> : <span id="score2">0</span><small>score</small></div>
+      <div class="pl p2" id="pl2">
+        <span class="chip p2" aria-hidden="true">P2</span>
+        <div class="names">
+          <input id="name2" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Player 2 name">
+          <span class="clock" id="clock2" hidden></span>
+        </div>
+      </div>
+    </div>
+    <div class="status" id="status" aria-live="polite">
+      <span class="chip" id="statusChip"></span>
+      <span class="who" id="statusText"></span>
+      <span class="extra" id="extra" hidden>Extra move!</span>
+    </div>
+  </header>
+
+  <main id="boardWrap">
+    <svg id="board" role="img" aria-label="Paper soccer pitch" xmlns="http://www.w3.org/2000/svg">
+      <g id="layerStatic"></g>
+      <g id="layerSegs"></g>
+      <g id="layerPts"></g>
+      <line id="preview" class="preview" visibility="hidden"></line>
+      <g id="layerTargets"></g>
+      <g id="ball" class="ball noanim">
+        <circle class="b" r="0.27"></circle>
+        <circle class="c" r="0.09"></circle>
+      </g>
+    </svg>
+    <div class="overlay" id="overlay" hidden>
+      <div class="card" role="dialog" aria-labelledby="endTitle" aria-describedby="endReason">
+        <h2 id="endTitle"></h2>
+        <p id="endReason"></p>
+        <div class="row">
+          <button class="primary" id="playAgain">Play again</button>
+          <button id="viewBoard">View board</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <p class="legend">Goal colour = attacker: <span class="chip p1">P1</span> scores ↑ top · <span class="chip p2">P2</span> scores ↓ bottom · bright dot = bounce point · filled target = extra move</p>
+  <footer>
+    <button id="btnNew">New game</button>
+    <button id="btnUndo">Undo</button>
+    <button id="btnClock" aria-pressed="false">Clock: Off</button>
+    <button id="btnRules">Rules</button>
+  </footer>
+</div>
+
+<dialog id="rules" aria-labelledby="rulesTitle">
+  <div class="dlg">
+    <h2 id="rulesTitle">Paper soccer — rules</h2>
+    <ul>
+      <li>The ball starts on the centre point. <b>P1</b> attacks the <b>top</b> goal, <b>P2</b> the <b>bottom</b> goal. Starting player alternates each game.</li>
+      <li>A move draws a line from the ball to one of its <b>8 neighbouring points</b> (straight or diagonal).</li>
+      <li>A line can never be drawn twice (in either direction), and you can't move <b>along the border</b>. Diagonals may cross.</li>
+      <li>The goal line between the posts is open: the ball may cross or run along it.</li>
+      <li><b>Bounce:</b> if the ball lands on a point that was already touched (any border point, post or corner, or the end of an earlier line), you <b>move again</b>. Chains can be as long as you like.</li>
+      <li><b>Goal:</b> reaching the opponent's goal wins; reaching your <b>own goal loses</b>.</li>
+      <li><b>Blocked:</b> if you must move and have no legal move (for example, stuck in a corner), you lose.</li>
+      <li><b>Chess clock</b> (optional): 2:00 each, +4 s after each of your turns. Run out of time and you lose.</li>
+    </ul>
+    <h3>Controls</h3>
+    <ul>
+      <li>Tap or click a highlighted point. Filled targets give an extra move.</li>
+      <li>Keys: <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> / <kbd>A</kbd><kbd>D</kbd> / <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> around <kbd>S</kbd>, or numpad <kbd>7</kbd><kbd>8</kbd><kbd>9</kbd> / <kbd>4</kbd><kbd>6</kbd> / <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>.</li>
+      <li>Arrow keys move straight. For diagonals hold <kbd>Shift</kbd> (or <kbd>Alt</kbd>) and press two arrows, for example <kbd>↑</kbd> then <kbd>→</kbd>.</li>
+      <li><kbd>Backspace</kbd> or <kbd>Ctrl/⌘ Z</kbd> undoes one move.</li>
+    </ul>
+    <div class="row">
+      <button id="btnResetScore">Reset score</button>
+      <button class="primary" id="btnCloseRules">Close</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- ======================================================================
+     Pure game logic (no DOM). Usable from the UI, the tests or Node.
+     ====================================================================== -->
+<script id="logic">
+'use strict';
+const PaperSoccer = (() => {
+  // Directions, clockwise from north. y grows downward (top goal is y = -1).
+  const DIRS = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
+  const DIR_NAMES = ['N','NE','E','SE','S','SW','W','NW'];
+
+  const pk = (x, y) => x + ',' + y;
+  // Canonical segment key: endpoints sorted, so A→B and B→A share one key.
+  const sk = (ax, ay, bx, by) =>
+    (ax < bx || (ax === bx && ay < by)) ? pk(ax, ay) + '|' + pk(bx, by) : pk(bx, by) + '|' + pk(ax, ay);
+
+  /** Build the immutable field description, including generated border segments. */
+  function makeConfig(W = 8, L = 10, G = 2) {
+    if (W % 2 || G % 2 || L % 2) throw new Error('Width, length and goal width must be even');
+    if (G < 2 || G > W || L < 2) throw new Error('Invalid field size');
+    const lp = (W - G) / 2, rp = lp + G; // x of the left and right posts
+    const border = new Set(), borderPts = new Set();
+    const add = (ax, ay, bx, by) => {
+      border.add(sk(ax, ay, bx, by));
+      borderPts.add(pk(ax, ay));
+      borderPts.add(pk(bx, by));
+    };
+    // Short sides, minus the open goal mouth between the posts.
+    for (let x = 0; x < W; x++) {
+      if (x >= lp && x + 1 <= rp) continue;
+      add(x, 0, x + 1, 0);
+      add(x, L, x + 1, L);
+    }
+    // Long sides.
+    for (let y = 0; y < L; y++) {
+      add(0, y, 0, y + 1);
+      add(W, y, W, y + 1);
+    }
+    // Goal outlines: two side lines and the back line, for each goal.
+    for (const [line, back] of [[0, -1], [L, L + 1]]) {
+      add(lp, line, lp, back);
+      add(rp, line, rp, back);
+      for (let x = lp; x < rp; x++) add(x, back, x + 1, back);
+    }
+    return Object.freeze({ W, L, G, lp, rp, border, borderPts, centre: { x: W / 2, y: L / 2 } });
+  }
+
+  /** Which player scores by reaching (x, y): 1 for the top goal, 2 for the bottom one, 0 otherwise. */
+  function goalScorer(cfg, x, y) {
+    if (x < cfg.lp || x > cfg.rp) return 0;
+    if (y === -1) return 1;
+    if (y === cfg.L + 1) return 2;
+    return 0;
+  }
+
+  function isInside(cfg, x, y) {
+    return (x >= 0 && x <= cfg.W && y >= 0 && y <= cfg.L) || goalScorer(cfg, x, y) !== 0;
+  }
+
+  function newGame(cfg, starter = 1, start = cfg.centre) {
+    return {
+      cfg,
+      starter,
+      start: { x: start.x, y: start.y },
+      ball: { x: start.x, y: start.y },
+      turn: starter,
+      extra: false,          // true while the current player is on a bounce chain
+      used: new Set(),       // drawn segment keys
+      pts: new Set(),        // endpoints of drawn segments
+      segs: [],              // [{x1,y1,x2,y2,p}] in drawing order
+      moves: [],             // history: [{dir,from,to,p,bounce}]
+      result: null,          // {winner, loser, reason: 'goal'|'owngoal'|'blocked'|'time'}
+    };
+  }
+
+  function clone(s) {
+    return {
+      ...s,
+      ball: { ...s.ball },
+      used: new Set(s.used),
+      pts: new Set(s.pts),
+      segs: s.segs.slice(),
+      moves: s.moves.slice(),
+      result: s.result && { ...s.result },
+    };
+  }
+
+  /** A point is touched if it is on the border or is the end of a drawn segment. */
+  function isTouched(state, x, y) {
+    const k = pk(x, y);
+    return state.cfg.borderPts.has(k) || state.pts.has(k);
+  }
+
+  /** Legal moves for the player to move: [{dir, name, x, y, bounce, goal}]. */
+  function legalMoves(state) {
+    if (state.result) return [];
+    const { cfg, ball } = state;
+    const out = [];
+    for (let d = 0; d < 8; d++) {
+      const x = ball.x + DIRS[d][0], y = ball.y + DIRS[d][1];
+      if (!isInside(cfg, x, y)) continue;
+      const goal = goalScorer(cfg, x, y);
+      // Entering a goal: the segment must pass through the mouth, not outside a post.
+      if (goal) {
+        const mx = (ball.x + x) / 2;
+        if (mx < cfg.lp || mx > cfg.rp) continue;
+      }
+      const k = sk(ball.x, ball.y, x, y);
+      if (state.used.has(k) || cfg.border.has(k)) continue;
+      out.push({ dir: d, name: DIR_NAMES[d], x, y, goal, bounce: !goal && isTouched(state, x, y) });
+    }
+    return out;
+  }
+
+  /** Returns the new state, or null if the move is illegal. Never mutates `state`. */
+  function applyMove(state, dir) {
+    const mv = legalMoves(state).find(m => m.dir === dir);
+    if (!mv) return null;
+    const p = state.turn;
+    const from = { ...state.ball }, to = { x: mv.x, y: mv.y };
+    const bounce = isTouched(state, to.x, to.y);
+    const s = clone(state);
+    s.used.add(sk(from.x, from.y, to.x, to.y));
+    s.pts.add(pk(from.x, from.y));
+    s.pts.add(pk(to.x, to.y));
+    s.segs.push({ x1: from.x, y1: from.y, x2: to.x, y2: to.y, p });
+    s.moves.push({ dir, from, to, p, bounce });
+    s.ball = to;
+    if (mv.goal) {
+      s.extra = false;
+      s.result = { winner: mv.goal, loser: 3 - mv.goal, reason: mv.goal === p ? 'goal' : 'owngoal' };
+      return s;
+    }
+    s.turn = bounce ? p : 3 - p;
+    s.extra = bounce;
+    if (legalMoves(s).length === 0) {
+      s.result = { winner: 3 - s.turn, loser: s.turn, reason: 'blocked' };
+    }
+    return s;
+  }
+
+  /** Undo the last move by replaying the history minus one move. */
+  function undo(state) {
+    if (!state.moves.length) return state;
+    let s = newGame(state.cfg, state.starter, state.start);
+    for (const m of state.moves.slice(0, -1)) s = applyMove(s, m.dir);
+    return s;
+  }
+
+  /** Player `p` loses on time. */
+  function timeout(state, p) {
+    const s = clone(state);
+    s.extra = false;
+    s.result = { winner: 3 - p, loser: p, reason: 'time' };
+    return s;
+  }
+
+  function winner(state) {
+    return state.result ? state.result.winner : null;
+  }
+
+  return { DIRS, DIR_NAMES, pk, sk, makeConfig, goalScorer, isInside, newGame, isTouched, legalMoves, applyMove, undo, timeout, winner };
+})();
+if (typeof module === 'object' && module.exports) module.exports = PaperSoccer;
+</script>
+
+<!-- ======================================================================
+     Self-tests: open with ?test in the URL, results in the console.
+     ====================================================================== -->
+<script id="tests">
+function runSelfTests(G) {
+  const D = Object.fromEntries(G.DIR_NAMES.map((n, i) => [n, i]));
+  const cfg = G.makeConfig(8, 10, 2);
+  const results = [];
+  const assert = (cond, msg) => { if (!cond) throw new Error(msg || 'assertion failed'); };
+  const ser = s => JSON.stringify({
+    ball: s.ball, turn: s.turn, extra: s.extra, result: s.result, segs: s.segs, moves: s.moves,
+    used: [...s.used].sort(), pts: [...s.pts].sort(),
+  });
+  const play = (s, ...names) => names.reduce((st, n) => {
+    const nx = G.applyMove(st, D[n]);
+    assert(nx, 'move ' + n + ' unexpectedly illegal');
+    return nx;
+  }, s);
+  const test = (name, fn) => {
+    try { fn(); results.push({ test: name, ok: true }); console.log('%c✔ ' + name, 'color:#2e7d32'); }
+    catch (e) { results.push({ test: name, ok: false, error: e.message }); console.error('✘ ' + name + ' — ' + e.message); }
+  };
+
+  test('0. Border is generated from constants (40 segments on 8×10, goal 2)', () => {
+    assert(cfg.border.size === 40, 'got ' + cfg.border.size);
+    assert(!cfg.borderPts.has('4,0') && cfg.borderPts.has('3,0') && cfg.borderPts.has('5,0'), 'posts/mouth');
+  });
+
+  test('1. Centre has 8 legal moves; first move does not bounce', () => {
+    const s = G.newGame(cfg, 1);
+    const lm = G.legalMoves(s);
+    assert(lm.length === 8, 'expected 8, got ' + lm.length);
+    assert(lm.every(m => !m.bounce), 'no move from the start should bounce');
+    const s1 = G.applyMove(s, D.N);
+    assert(s1.turn === 2 && !s1.extra, 'turn should pass to P2');
+  });
+
+  test('2. Moving along the border is illegal; from the border into the field is legal', () => {
+    const s = G.newGame(cfg, 1, { x: 1, y: 0 });
+    assert(G.applyMove(s, D.E) === null, 'E along top edge must be illegal');
+    assert(G.applyMove(s, D.W) === null, 'W along top edge must be illegal');
+    assert(G.applyMove(s, D.S) !== null, 'S into the field must be legal');
+    assert(G.applyMove(s, D.SW) !== null, 'SW into the field must be legal');
+    const side = G.newGame(cfg, 1, { x: 0, y: 4 });
+    assert(G.applyMove(side, D.N) === null && G.applyMove(side, D.S) === null, 'along the side line');
+    assert(G.applyMove(side, D.E) !== null, 'E off the side line must be legal');
+  });
+
+  test('3. Moving onto a border point gives an extra move', () => {
+    const s = play(G.newGame(cfg, 1, { x: 1, y: 1 }), 'W');
+    assert(s.ball.x === 0 && s.ball.y === 1);
+    assert(s.turn === 1 && s.extra && !s.result, 'P1 should move again');
+  });
+
+  test('4. Moving onto the end of an existing segment gives an extra move', () => {
+    const s = play(G.newGame(cfg, 1), 'N', 'E');
+    assert(s.turn === 1 && !s.extra);
+    const s3 = play(s, 'SW'); // back to the centre, which is an endpoint
+    assert(s3.ball.x === 4 && s3.ball.y === 5);
+    assert(s3.turn === 1 && s3.extra, 'P1 should move again');
+  });
+
+  test('5. A segment cannot be redrawn in either direction', () => {
+    const s1 = play(G.newGame(cfg, 1), 'N');
+    assert(G.applyMove(s1, D.S) === null, 'reverse of the first segment');
+    const s2 = play(s1, 'E');
+    assert(G.applyMove(s2, D.W) === null, 'reverse of the second segment');
+    const s3 = play(s2, 'SW'); // ball on centre again, P1 to move
+    assert(G.applyMove(s3, D.N) === null, 'same segment, same direction');
+  });
+
+  test('6. Diagonal from a post into the goal scores; own goal loses', () => {
+    const s = G.newGame(cfg, 1, { x: 3, y: 0 });
+    assert(G.applyMove(s, D.N) === null, 'post → straight up is the goal side line (border)');
+    const w = G.applyMove(s, D.NE);
+    assert(w && w.result && w.result.winner === 1 && w.result.reason === 'goal', 'P1 scores top');
+    assert(G.winner(w) === 1);
+    const own = G.applyMove(G.newGame(cfg, 2, { x: 3, y: 0 }), D.NE);
+    assert(own.result.winner === 1 && own.result.loser === 2 && own.result.reason === 'owngoal', 'P2 own goal');
+    const b = G.applyMove(G.newGame(cfg, 2, { x: 5, y: 10 }), D.SW);
+    assert(b.result.winner === 2 && b.result.reason === 'goal', 'P2 scores bottom');
+    assert(G.applyMove(G.newGame(cfg, 1, { x: 2, y: 0 }), D.NE) === null, 'cannot enter the goal from outside the post');
+  });
+
+  test('7. A player with no legal move loses (field corner)', () => {
+    const s = play(G.newGame(cfg, 1, { x: 1, y: 1 }), 'NW');
+    assert(G.legalMoves(s).length === 0);
+    assert(s.result && s.result.reason === 'blocked' && s.result.loser === 1 && s.result.winner === 2, JSON.stringify(s.result));
+  });
+
+  test('8. Undo restores the exact previous state, including the turn', () => {
+    const s0 = G.newGame(cfg, 1);
+    const s1 = play(s0, 'N'), s2 = play(s1, 'E'), s3 = play(s2, 'SW');
+    assert(ser(G.undo(s3)) === ser(s2), 'undo of a bounce');
+    const u2 = G.undo(s2);
+    assert(ser(u2) === ser(s1) && u2.turn === 2, 'undo across turns');
+    assert(ser(G.undo(s1)) === ser(s0) && G.undo(s1).turn === 1, 'undo to start');
+    const g = G.newGame(cfg, 2, { x: 4, y: 9 });
+    const g1 = play(g, 'S');                 // onto the open goal line, no bounce
+    const g2 = play(g1, 'S');                // P1 at (4,10) → into bottom goal = own goal
+    assert(g2.result && g2.result.reason === 'owngoal');
+    assert(ser(G.undo(g2)) === ser(g1) && !G.undo(g2).result, 'undo clears the result');
+  });
+
+  const passed = results.filter(r => r.ok).length;
+  console.table(results);
+  console.log(`Paper soccer self-tests: ${passed}/${results.length} passed`);
+  return { passed, total: results.length, results };
+}
+</script>
+
+<!-- ======================================================================
+     Rendering, input, clock and persistence.
+     ====================================================================== -->
+<script id="ui">
+(() => {
+  'use strict';
+  // Field constants (width and goal width must be even).
+  const FIELD_WIDTH = 8;
+  const FIELD_LENGTH = 10;
+  const GOAL_WIDTH = 2;
+  const CLOCK_START_MS = 120000;
+  const CLOCK_INC_MS = 4000;
+  const STORE_KEY = 'paperSoccer.v1';
+  const HIT_RADIUS = 0.75; // in grid units; targets are picked by proximity
+
+  const G = PaperSoccer;
+  const CFG = G.makeConfig(FIELD_WIDTH, FIELD_LENGTH, GOAL_WIDTH);
+  const $ = id => document.getElementById(id);
+  const svg = $('board'), ballEl = $('ball'), preview = $('preview');
+  const overlay = $('overlay'), rulesDlg = $('rules'), boardWrap = $('boardWrap');
+
+  // ---------- persistence ----------
+  function loadPrefs() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; }
+  }
+  function savePrefs() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(prefs)); } catch (e) { /* storage unavailable */ }
+  }
+  const saved = loadPrefs();
+  const prefs = {
+    names: Array.isArray(saved.names) ? saved.names.map(n => String(n || '').slice(0, 16)).concat(['', '']).slice(0, 2) : ['', ''],
+    score: Array.isArray(saved.score) ? saved.score.map(n => Math.max(0, n | 0)).concat([0, 0]).slice(0, 2) : [0, 0],
+    clock: saved.clock === true,
+    starter: saved.starter === 2 ? 2 : 1,
+  };
+  const name = p => (prefs.names[p - 1] || '').trim() || 'Player ' + p;
+
+  // ---------- game state ----------
+  let state = G.newGame(CFG, prefs.starter);
+  let clockOn = prefs.clock;
+  let clocks = { 1: CLOCK_START_MS, 2: CLOCK_START_MS };
+  let lastTick = performance.now();
+  let moves = [];
+  let hoverDir = null;
+  let overlayTimer = null;
+
+  // ---------- static board ----------
+  function buildStatic() {
+    const { W, L, G: GW, lp, rp } = CFG;
+    const M = 0.5;
+    svg.setAttribute('viewBox', `${-M} ${-1 - M} ${W + 2 * M} ${L + 2 + 2 * M}`);
+    let h = `<rect class="runoff" x="${-M}" y="${-1 - M}" width="${W + 2 * M}" height="${L + 2 + 2 * M}" rx="0.3"/>`;
+    for (let y = 0; y < L; y++) h += `<rect class="stripe ${y % 2 ? 'b' : 'a'}" x="0" y="${y}" width="${W}" height="1"/>`;
+    // Each goal is filled with the colour of the player who attacks it.
+    h += `<rect class="goalfill p1" x="${lp}" y="-1" width="${GW}" height="1"/>`;
+    h += `<rect class="goalfill p2" x="${lp}" y="${L}" width="${GW}" height="1"/>`;
+    for (let x = 1; x < W; x++) h += `<line class="gridline" x1="${x}" y1="0" x2="${x}" y2="${L}"/>`;
+    for (let y = 1; y < L; y++) h += `<line class="gridline" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
+    h += `<line class="decor" x1="0" y1="${L / 2}" x2="${W}" y2="${L / 2}"/>`;
+    h += `<circle class="decor" cx="${W / 2}" cy="${L / 2}" r="1.5"/>`;
+    h += `<line class="mouth" x1="${lp}" y1="0" x2="${rp}" y2="0"/><line class="mouth" x1="${lp}" y1="${L}" x2="${rp}" y2="${L}"/>`;
+    for (const key of CFG.border) {
+      const [a, b] = key.split('|').map(p => p.split(',').map(Number));
+      h += `<line class="border" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
+    }
+    h += `<text class="glabel" x="${W / 2}" y="-0.5">P1 ▲</text>`;
+    h += `<text class="glabel" x="${W / 2}" y="${L + 0.5}">P2 ▼</text>`;
+    $('layerStatic').innerHTML = h;
+  }
+
+  // ---------- rendering ----------
+  function render(animate) {
+    const { W, L } = CFG;
+    const n = state.segs.length;
+    let s = '';
+    state.segs.forEach((g, i) => {
+      const c = `x1="${g.x1}" y1="${g.y1}" x2="${g.x2}" y2="${g.y2}"`;
+      if (i === n - 1) s += `<line class="halo" ${c}/>`;
+      s += `<line class="seg p${g.p}${i === n - 1 ? ' last' : ''}${i === n - 1 && animate ? ' fresh' : ''}" ${c} pathLength="1"/>`;
+    });
+    $('layerSegs').innerHTML = s;
+
+    let p = '';
+    for (let y = -1; y <= L + 1; y++) {
+      for (let x = 0; x <= W; x++) {
+        if (!G.isInside(CFG, x, y)) continue;
+        const t = G.isTouched(state, x, y);
+        p += `<circle class="pt${t ? ' t' : ''}" cx="${x}" cy="${y}" r="${t ? 0.1 : 0.055}"/>`;
+      }
+    }
+    $('layerPts').innerHTML = p;
+
+    moves = G.legalMoves(state);
+    if (!moves.some(m => m.dir === hoverDir)) hoverDir = null;
+    let t = '';
+    for (const m of moves) {
+      const cls = `tg p${state.turn}${m.bounce ? ' bounce' : ''}${m.goal ? ' goal' : ''}${m.dir === hoverDir ? ' hover' : ''}`;
+      t += `<circle class="${cls}" cx="${m.x}" cy="${m.y}" r="${m.bounce ? 0.22 : 0.19}"/>`;
+    }
+    $('layerTargets').innerHTML = t;
+    updatePreview();
+
+    ballEl.style.transform = `translate(${state.ball.x}px, ${state.ball.y}px)`;
+
+    renderHeader();
+  }
+
+  function updatePreview() {
+    const m = moves.find(m => m.dir === hoverDir);
+    if (!m) { preview.setAttribute('visibility', 'hidden'); return; }
+    preview.setAttribute('x1', state.ball.x); preview.setAttribute('y1', state.ball.y);
+    preview.setAttribute('x2', m.x); preview.setAttribute('y2', m.y);
+    preview.setAttribute('class', 'preview p' + state.turn);
+    preview.setAttribute('visibility', 'visible');
+  }
+
+  function renderHeader() {
+    const r = state.result;
+    for (const p of [1, 2]) {
+      $('pl' + p).classList.toggle('active', !r && state.turn === p);
+      $('score' + p).textContent = prefs.score[p - 1];
+      const inp = $('name' + p);
+      if (document.activeElement !== inp) inp.value = prefs.names[p - 1];
+      inp.placeholder = 'Player ' + p;
+    }
+    const who = r ? r.winner : state.turn;
+    const chip = $('statusChip');
+    chip.className = 'chip p' + who;
+    chip.textContent = 'P' + who;
+    $('statusText').textContent = r
+      ? `${name(r.winner)} wins — ${shortReason(r)}`
+      : `${name(state.turn)} to move ${state.turn === 1 ? '↑' : '↓'}`;
+    $('extra').hidden = !(state.extra && !r);
+    $('btnUndo').disabled = !state.moves.length || !!r;
+    const btnClock = $('btnClock');
+    btnClock.setAttribute('aria-pressed', String(prefs.clock));
+    btnClock.textContent = 'Clock: ' + (prefs.clock ? 'On' : 'Off') + (prefs.clock !== clockOn ? '*' : '');
+    btnClock.title = prefs.clock !== clockOn ? 'Takes effect next game' : 'Chess clock: 2:00 + 4 s per turn';
+    renderClocks();
+  }
+
+  function fmt(ms) {
+    ms = Math.max(0, ms);
+    if (ms < 10000) return (ms / 1000).toFixed(1);
+    const s = Math.ceil(ms / 1000);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+  function renderClocks() {
+    for (const p of [1, 2]) {
+      const el = $('clock' + p);
+      el.hidden = !clockOn;
+      el.textContent = '⏱ ' + fmt(clocks[p]);
+      el.classList.toggle('low', clocks[p] < 20000);
+    }
+  }
+
+  function shortReason(r) {
+    return { goal: 'goal', owngoal: 'own goal', blocked: 'opponent blocked', time: 'time' }[r.reason];
+  }
+  function longReason(r) {
+    const W = name(r.winner), Lz = name(r.loser);
+    switch (r.reason) {
+      case 'goal': return `${W} scored in ${Lz}'s goal.`;
+      case 'owngoal': return `${Lz} put the ball into their own goal.`;
+      case 'blocked': return `${Lz} was blocked with no legal move.`;
+      case 'time': return `${Lz} ran out of time.`;
+    }
+    return '';
+  }
+
+  // ---------- game flow ----------
+  function shake() {
+    boardWrap.classList.remove('shake');
+    void boardWrap.offsetWidth;
+    boardWrap.classList.add('shake');
+  }
+
+  function tryMove(dir) {
+    if (state.result || dir < 0) { shake(); return; }
+    const prev = state;
+    const next = G.applyMove(state, dir);
+    if (!next) { shake(); return; }
+    state = next;
+    if (clockOn && !next.result && next.turn !== prev.turn) clocks[prev.turn] += CLOCK_INC_MS;
+    hoverDir = null;
+    render(true);
+    if (next.result) endGame();
+  }
+
+  function endGame() {
+    const r = state.result;
+    prefs.score[r.winner - 1]++;
+    prefs.starter = 3 - state.starter; // next game is started by the other player
+    savePrefs();
+    renderHeader();
+    clearTimeout(overlayTimer);
+    overlayTimer = setTimeout(() => {
+      const t = $('endTitle');
+      t.textContent = '';
+      const chip = document.createElement('span');
+      chip.className = 'chip p' + r.winner;
+      chip.textContent = 'P' + r.winner;
+      t.append(chip, ` ${name(r.winner)} wins!`);
+      $('endReason').textContent = longReason(r);
+      overlay.hidden = false;
+      $('playAgain').focus();
+    }, 450);
+  }
+
+  function newGame() {
+    clearTimeout(overlayTimer);
+    overlay.hidden = true;
+    const starter = state.result ? prefs.starter : 3 - state.starter;
+    prefs.starter = starter;
+    savePrefs();
+    state = G.newGame(CFG, starter);
+    clockOn = prefs.clock;
+    clocks = { 1: CLOCK_START_MS, 2: CLOCK_START_MS };
+    lastTick = performance.now();
+    hoverDir = null;
+    render(false);
+  }
+
+  function doUndo() {
+    if (state.result || !state.moves.length) { shake(); return; }
+    state = G.undo(state);
+    hoverDir = null;
+    render(false);
+  }
+
+  // ---------- clock ----------
+  setInterval(() => {
+    const now = performance.now();
+    const dt = now - lastTick;
+    lastTick = now;
+    if (!clockOn || state.result || rulesDlg.open) return;
+    clocks[state.turn] -= dt;
+    if (clocks[state.turn] <= 0) {
+      clocks[state.turn] = 0;
+      state = G.timeout(state, state.turn);
+      render(false);
+      endGame();
+    } else {
+      renderClocks();
+    }
+  }, 100);
+
+  // ---------- pointer input ----------
+  function toSvg(e) {
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function pick(e) {
+    const pt = toSvg(e);
+    let best = null, bd = HIT_RADIUS;
+    for (const m of moves) {
+      const d = Math.hypot(m.x - pt.x, m.y - pt.y);
+      if (d < bd) { bd = d; best = m; }
+    }
+    return best;
+  }
+  svg.addEventListener('click', e => {
+    const m = pick(e);
+    if (m) tryMove(m.dir);
+  });
+  svg.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    const m = pick(e);
+    const d = m ? m.dir : null;
+    if (d !== hoverDir) { hoverDir = d; render(false); }
+    svg.style.cursor = m ? 'pointer' : 'default';
+  });
+  svg.addEventListener('pointerleave', () => {
+    if (hoverDir !== null) { hoverDir = null; render(false); }
+  });
+
+  // ---------- keyboard input ----------
+  const KEY_DIRS = {
+    KeyW: 0, KeyE: 1, KeyD: 2, KeyC: 3, KeyX: 4, KeyZ: 5, KeyA: 6, KeyQ: 7,
+    Numpad8: 0, Numpad9: 1, Numpad6: 2, Numpad3: 3, Numpad2: 4, Numpad1: 5, Numpad4: 6, Numpad7: 7,
+  };
+  const ARROWS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+  const dirOf = (dx, dy) => G.DIRS.findIndex(d => d[0] === dx && d[1] === dy);
+  let pendingArrow = null;
+
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, textarea, select')) return;
+    if (rulesDlg.open) return;
+    const k = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); doUndo(); return; }
+    if (e.key === 'Backspace') { e.preventDefault(); doUndo(); return; }
+    if (!overlay.hidden) return;
+    if (e.code in KEY_DIRS && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      if (!e.repeat) tryMove(KEY_DIRS[e.code]);
+      return;
+    }
+    if (e.key in ARROWS) {
+      e.preventDefault();
+      if (e.repeat) return;
+      const v = ARROWS[e.key];
+      if (!(e.shiftKey || e.altKey)) { pendingArrow = null; tryMove(dirOf(v[0], v[1])); return; }
+      if (pendingArrow && (pendingArrow[0] === 0) !== (v[0] === 0)) {
+        const d = dirOf(pendingArrow[0] + v[0], pendingArrow[1] + v[1]);
+        pendingArrow = null;
+        tryMove(d);
+      } else {
+        pendingArrow = v;
+      }
+    }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'Shift' || e.key === 'Alt') pendingArrow = null;
+  });
+
+  // ---------- controls ----------
+  $('btnNew').addEventListener('click', () => {
+    if (state.moves.length && !state.result && !confirm('Abandon this game and start a new one?')) return;
+    newGame();
+  });
+  $('btnUndo').addEventListener('click', doUndo);
+  $('btnClock').addEventListener('click', () => {
+    prefs.clock = !prefs.clock;
+    savePrefs();
+    if (!state.moves.length && !state.result) {
+      clockOn = prefs.clock;
+      clocks = { 1: CLOCK_START_MS, 2: CLOCK_START_MS };
+    }
+    renderHeader();
+  });
+  $('btnRules').addEventListener('click', () => rulesDlg.showModal());
+  $('btnCloseRules').addEventListener('click', () => rulesDlg.close());
+  rulesDlg.addEventListener('click', e => { if (e.target === rulesDlg) rulesDlg.close(); });
+  $('btnResetScore').addEventListener('click', () => {
+    prefs.score = [0, 0];
+    savePrefs();
+    renderHeader();
+  });
+  $('playAgain').addEventListener('click', newGame);
+  $('viewBoard').addEventListener('click', () => { overlay.hidden = true; $('btnNew').focus(); });
+  for (const p of [1, 2]) {
+    const inp = $('name' + p);
+    inp.addEventListener('input', () => {
+      prefs.names[p - 1] = inp.value.slice(0, 16);
+      savePrefs();
+      renderHeader();
+    });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  }
+
+  // ---------- start ----------
+  buildStatic();
+  render(false);
+  requestAnimationFrame(() => requestAnimationFrame(() => ballEl.classList.remove('noanim')));
+
+  if (new URLSearchParams(location.search).has('test')) {
+    const r = runSelfTests(G);
+    const bar = document.createElement('div');
+    bar.className = 'testbar';
+    bar.style.background = r.passed === r.total ? '#2e7d32' : '#c62828';
+    bar.textContent = `Self-tests: ${r.passed}/${r.total} passed (see console)`;
+    document.body.append(bar);
+  }
+})();
+</script>
+</body>
+</html>
