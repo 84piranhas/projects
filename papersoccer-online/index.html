@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Paper Soccer Online</title>
+<style>
+  :root {
+    --bg: #eef2ef;
+    --surface: #ffffff;
+    --text: #12201a;
+    --muted: #4a5a51;
+    --line: #cfd9d2;
+    --p1: #8fcbff;
+    --p2: #ffb35a;
+    --on-p: #0c1a12;
+    --pitch-a: #2b7338;
+    --pitch-b: #286b34;
+    --runoff: #1f5a2b;
+    --ok: #2e7d32;
+    --warn: #b26a00;
+    --danger: #c62828;
+    --shadow: 0 6px 24px rgba(0,0,0,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1411;
+      --surface: #19221d;
+      --text: #e4ede7;
+      --muted: #9fb2a7;
+      --line: #2e3d34;
+      --pitch-a: #256433;
+      --pitch-b: #225e30;
+      --runoff: #183f22;
+      --ok: #66bb6a;
+      --warn: #ffb74d;
+      --danger: #ff6b6b;
+      --shadow: 0 6px 24px rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    font: inherit; font-weight: 600; font-size: 14px;
+    min-height: 44px; padding: 6px 12px;
+    border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--p1); outline-offset: 2px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  button.small { min-height: 34px; padding: 4px 10px; font-size: 13px; }
+  button[aria-pressed="true"] { background: color-mix(in srgb, var(--p1) 35%, var(--surface)); }
+  .chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 22px; padding: 0 6px;
+    border-radius: 6px; font-size: 12px; font-weight: 800;
+    color: var(--on-p); flex: none;
+  }
+  .chip.p1 { background: var(--p1); }
+  .chip.p2 { background: var(--p2); }
+
+  /* ---------- lobby ---------- */
+  .lobby {
+    height: 100vh; height: 100dvh; overflow: auto;
+    max-width: 420px; margin: 0 auto; padding: 32px 16px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .lobby h1 { margin: 0; font-size: 30px; letter-spacing: -.02em; }
+  .lobby h1 span { color: var(--muted); font-weight: 600; }
+  .lobby p { margin: 0; color: var(--muted); }
+  .lobby label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 14px; }
+  .lobby input {
+    font: inherit; font-size: 18px; padding: 10px 12px; min-height: 48px;
+    border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  }
+  .lobby .or { text-align: center; color: var(--muted); font-size: 13px; }
+  .joinrow { display: flex; gap: 8px; }
+  .joinrow input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .3em; font-weight: 700; text-align: center; }
+  .note { font-size: 13px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--text) !important; }
+  .err { color: var(--danger) !important; font-weight: 600; }
+  .lobby a { color: var(--muted); font-size: 14px; }
+
+  /* ---------- game ---------- */
+  .app {
+    height: 100vh; height: 100dvh;
+    max-width: 640px; margin: 0 auto;
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .roombar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px 0; font-size: 13px; color: var(--muted);
+  }
+  .roombar b { color: var(--text); letter-spacing: .12em; }
+  .conn { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conn::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--muted); vertical-align: 0; }
+  .conn.ok::before { background: var(--ok); }
+  .conn.warn::before { background: var(--warn); }
+  .conn.bad::before { background: var(--danger); }
+
+  header { padding: 4px 8px 2px; }
+  .scoreboard { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 6px; align-items: center; }
+  .pl {
+    display: flex; align-items: center; gap: 6px;
+    min-width: 0; padding: 4px 6px;
+    border: 2px solid transparent; border-radius: 10px;
+    transition: background .2s, border-color .2s;
+  }
+  .pl.p2 { flex-direction: row-reverse; }
+  .pl.p1 { --pc: var(--p1); }
+  .pl.p2 { --pc: var(--p2); }
+  .pl.active { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 22%, transparent); }
+  .pl .names { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .pl.p2 .names { align-items: flex-end; }
+  .pl input {
+    width: 100%; min-width: 0;
+    font: inherit; font-size: 16px; font-weight: 600;
+    color: inherit; background: transparent;
+    border: 0; border-bottom: 1px dashed var(--line);
+    padding: 2px 0; border-radius: 0;
+  }
+  .pl input[readonly] { border-bottom-color: transparent; }
+  .pl.p2 input { text-align: right; }
+  .pl input:focus { outline: none; border-bottom-color: var(--text); }
+  .meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; }
+  .you { font-weight: 800; color: var(--text); letter-spacing: .05em; }
+  .clock { font-variant-numeric: tabular-nums; }
+  .clock.low { color: var(--danger); font-weight: 700; }
+  .score { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
+  .score small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .status { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 30px; margin-top: 2px; }
+  .status .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
+  .extra {
+    font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+    padding: 3px 8px; border-radius: 999px; background: var(--text); color: var(--bg);
+    animation: pop .3s ease-out;
+  }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } }
+
+  main { flex: 1; min-height: 0; position: relative; padding: 2px 4px; }
+  #board { width: 100%; height: 100%; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  main.shake #board { animation: shake .3s; }
+  @keyframes shake { 20%,60% { transform: translateX(-5px); } 40%,80% { transform: translateX(5px); } }
+
+  .runoff { fill: var(--runoff); }
+  .stripe.a { fill: var(--pitch-a); }
+  .stripe.b { fill: var(--pitch-b); }
+  .goalfill { fill-opacity: .85; }
+  .goalfill.p1 { fill: var(--p1); }
+  .goalfill.p2 { fill: var(--p2); }
+  .gridline { stroke: #fff; stroke-opacity: .09; stroke-width: .02; }
+  .decor { fill: none; stroke: #fff; stroke-opacity: .2; stroke-width: .035; }
+  .mouth { stroke: #fff; stroke-opacity: .85; stroke-width: .04; stroke-dasharray: .1 .09; }
+  .border { stroke: #fff; stroke-width: .1; stroke-linecap: round; }
+  .glabel { font: 800 .38px system-ui, sans-serif; fill: var(--on-p); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .seg { stroke-width: .075; stroke-linecap: round; }
+  .seg.p1 { stroke: var(--p1); }
+  .seg.p2 { stroke: var(--p2); }
+  .seg.last { stroke-width: .13; }
+  .halo { stroke: #fff; stroke-opacity: .5; stroke-width: .25; stroke-linecap: round; }
+  .seg.fresh { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: draw .2s ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .pt { fill: #fff; fill-opacity: .45; }
+  .pt.t { fill-opacity: 1; }
+  .tg { fill: none; stroke-width: .06; }
+  .tg.p1 { stroke: var(--p1); }
+  .tg.p2 { stroke: var(--p2); }
+  .tg.bounce { stroke: #fff; stroke-width: .05; fill-opacity: .95; animation: pulse 1.2s ease-in-out infinite; }
+  .tg.bounce.p1 { fill: var(--p1); }
+  .tg.bounce.p2 { fill: var(--p2); }
+  .tg.goal { stroke-width: .09; stroke-dasharray: .12 .07; }
+  .tg.hover { stroke-width: .11; }
+  .tg.hover:not(.bounce) { fill: #fff; fill-opacity: .25; }
+  @keyframes pulse { 50% { fill-opacity: .55; } }
+  .preview { stroke-width: .06; stroke-dasharray: .08 .07; stroke-linecap: round; }
+  .preview.p1 { stroke: var(--p1); }
+  .preview.p2 { stroke: var(--p2); }
+  .ball { transition: transform .2s cubic-bezier(.3,.7,.4,1); }
+  .ball.noanim { transition: none; }
+  .ball .b { fill: #fff; stroke: #111; stroke-width: .05; }
+  .ball .c { fill: #111; }
+  @media (prefers-reduced-motion: reduce) {
+    .ball { transition: none; }
+    .seg.fresh, .tg.bounce, .extra, main.shake #board { animation: none; }
+    .seg.fresh { stroke-dashoffset: 0; }
+  }
+
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.32); padding: 16px; }
+  .card {
+    background: var(--surface); color: var(--text);
+    border-radius: 16px; box-shadow: var(--shadow);
+    padding: 20px; width: min(340px, 100%); text-align: center;
+    animation: pop .25s ease-out;
+  }
+  .card h2 { margin: 6px 0; font-size: 22px; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .card p { margin: 0 0 16px; color: var(--muted); }
+  .card .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .bigcode { font-size: 40px; font-weight: 800; letter-spacing: .25em; margin: 4px 0 8px; padding-left: .25em; }
+
+  .banner {
+    margin: 4px 8px 0; padding: 8px 10px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+    font-size: 14px; text-align: center;
+  }
+  .banner span { flex: 1 1 160px; }
+  footer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px 8px 8px; }
+
+  dialog {
+    border: 0; border-radius: 16px; padding: 0;
+    background: var(--surface); color: var(--text);
+    width: min(540px, calc(100vw - 24px)); max-height: 86dvh;
+    box-shadow: var(--shadow);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .dlg { padding: 18px 20px 16px; overflow: auto; max-height: 86dvh; }
+  .dlg h2 { margin: 0 0 8px; font-size: 20px; }
+  .dlg h3 { margin: 14px 0 4px; font-size: 15px; }
+  .dlg ul { margin: 4px 0; padding-left: 20px; }
+  .dlg li { margin: 3px 0; }
+  .dlg kbd { font: 12px ui-monospace, monospace; padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+  .dlg .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<!-- ============================== Lobby ============================== -->
+<section class="lobby" id="lobby" hidden>
+  <h1>Paper Soccer <span>Online</span></h1>
+  <p>Play against a friend on two different devices. One of you creates a game, the other joins with the 4-letter code.</p>
+  <label>Your name
+    <input id="lobbyName" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Player">
+  </label>
+  <button class="primary" id="btnCreate">Create a game</button>
+  <div class="or">or join a friend's game</div>
+  <form class="joinrow" id="joinForm">
+    <input id="joinCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" aria-label="Game code">
+    <button type="submit">Join</button>
+  </form>
+  <p class="err" id="lobbyErr" hidden></p>
+  <p class="note" id="modeNote" hidden></p>
+  <a href="../papersoccer-by-claude/">Playing on one device? Use the hot-seat version →</a>
+</section>
+
+<!-- ============================== Game ============================== -->
+<div class="app" id="app" hidden>
+  <div class="roombar">
+    <span>Room <b id="roomCode"></b></span>
+    <span class="conn" id="conn">Connecting…</span>
+    <button class="small" id="btnInvite">Invite</button>
+  </div>
+  <header>
+    <div class="scoreboard">
+      <div class="pl p1" id="pl1">
+        <span class="chip p1" aria-hidden="true">P1</span>
+        <div class="names">
+          <input id="name1" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Player 1 name">
+          <span class="meta"><span class="you" id="you1" hidden>YOU</span><span class="clock" id="clock1" hidden></span></span>
+        </div>
+      </div>
+      <div class="score" aria-label="Match score"><span id="score1">0</span> : <span id="score2">0</span><small>score</small></div>
+      <div class="pl p2" id="pl2">
+        <span class="chip p2" aria-hidden="true">P2</span>
+        <div class="names">
+          <input id="name2" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Player 2 name">
+          <span class="meta"><span class="clock" id="clock2" hidden></span><span class="you" id="you2" hidden>YOU</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="status" id="status" aria-live="polite">
+      <span class="chip" id="statusChip"></span>
+      <span class="who" id="statusText"></span>
+      <span class="extra" id="extra" hidden>Extra move!</span>
+    </div>
+  </header>
+
+  <main id="boardWrap">
+    <svg id="board" role="img" aria-label="Paper soccer pitch" xmlns="http://www.w3.org/2000/svg">
+      <g id="layerStatic"></g>
+      <g id="layerSegs"></g>
+      <g id="layerPts"></g>
+      <line id="preview" class="preview" visibility="hidden"></line>
+      <g id="layerTargets"></g>
+      <g id="ball" class="ball noanim">
+        <circle class="b" r="0.27"></circle>
+        <circle class="c" r="0.09"></circle>
+      </g>
+    </svg>
+
+    <div class="overlay" id="waitOverlay" hidden>
+      <div class="card">
+        <h2 id="waitTitle">Invite your opponent</h2>
+        <p id="waitText">Send them the link, or tell them this code:</p>
+        <div class="bigcode" id="waitCode"></div>
+        <div class="row">
+          <button class="primary" id="btnShare">Share invite link</button>
+          <button id="btnCopyCode">Copy code</button>
+        </div>
+        <p style="margin:14px 0 0;font-size:13px">The game starts as soon as they join.</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="endOverlay" hidden>
+      <div class="card" role="dialog" aria-labelledby="endTitle" aria-describedby="endReason">
+        <h2 id="endTitle"></h2>
+        <p id="endReason"></p>
+        <div class="row">
+          <button class="primary" id="playAgain">Play again</button>
+          <button id="viewBoard">View board</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="banner" id="askBanner" hidden>
+    <span id="askText"></span>
+    <button class="small primary" id="btnAccept">Accept</button>
+    <button class="small" id="btnDecline">Decline</button>
+  </div>
+  <div class="banner" id="toast" hidden role="status"><span id="toastText"></span></div>
+
+  <footer>
+    <button id="btnUndo">Undo</button>
+    <button id="btnResign">Resign</button>
+    <button id="btnClock" aria-pressed="false">Clock: Off</button>
+    <button id="btnMenu">Menu</button>
+  </footer>
+</div>
+
+<dialog id="menu" aria-labelledby="menuTitle">
+  <div class="dlg">
+    <h2 id="menuTitle">Paper soccer — online</h2>
+    <ul>
+      <li>The ball starts on the centre point. <b>P1</b> attacks P2's goal and <b>P2</b> attacks P1's goal. Your own goal is always shown at the bottom of your screen.</li>
+      <li>A move draws a line from the ball to one of its <b>8 neighbouring points</b>. A line can never be drawn twice, and you can't move along the border. Diagonals may cross.</li>
+      <li><b>Bounce:</b> landing on a point that was already touched (border, post, corner or the end of an earlier line) gives you <b>another move</b>.</li>
+      <li><b>Goal</b> in the opponent's goal wins; an <b>own goal</b> loses. If you must move and can't, you lose.</li>
+      <li><b>Undo</b> asks your opponent to take back your last move. <b>Resign</b> gives the game to your opponent.</li>
+      <li><b>Chess clock</b> (optional): 2:00 each, +4 s after each of your turns. It pauses while a player is disconnected.</li>
+    </ul>
+    <h3>Controls</h3>
+    <ul>
+      <li>Tap or click a highlighted point. Filled targets give an extra move.</li>
+      <li>Keys (relative to your screen): <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> / <kbd>A</kbd><kbd>D</kbd> / <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd>, numpad <kbd>7</kbd>–<kbd>9</kbd>, or arrows (hold <kbd>Shift</kbd> and press two arrows for a diagonal).</li>
+    </ul>
+    <div class="row">
+      <button id="btnLeave">Leave game</button>
+      <button class="primary" id="btnCloseMenu">Close</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- ======================================================================
+     Pure game logic: the same module as the hot-seat version, plus endBy()
+     for results that can't be replayed from moves (time, resignation).
+     ====================================================================== -->
+<script id="logic">
+'use strict';
+const PaperSoccer = (() => {
+  const DIRS = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
+  const DIR_NAMES = ['N','NE','E','SE','S','SW','W','NW'];
+  const pk = (x, y) => x + ',' + y;
+  const sk = (ax, ay, bx, by) =>
+    (ax < bx || (ax === bx && ay < by)) ? pk(ax, ay) + '|' + pk(bx, by) : pk(bx, by) + '|' + pk(ax, ay);
+
+  function makeConfig(W = 8, L = 10, G = 2) {
+    if (W % 2 || G % 2 || L % 2) throw new Error('Width, length and goal width must be even');
+    if (G < 2 || G > W || L < 2) throw new Error('Invalid field size');
+    const lp = (W - G) / 2, rp = lp + G;
+    const border = new Set(), borderPts = new Set();
+    const add = (ax, ay, bx, by) => {
+      border.add(sk(ax, ay, bx, by));
+      borderPts.add(pk(ax, ay));
+      borderPts.add(pk(bx, by));
+    };
+    for (let x = 0; x < W; x++) {
+      if (x >= lp && x + 1 <= rp) continue;
+      add(x, 0, x + 1, 0);
+      add(x, L, x + 1, L);
+    }
+    for (let y = 0; y < L; y++) {
+      add(0, y, 0, y + 1);
+      add(W, y, W, y + 1);
+    }
+    for (const [line, back] of [[0, -1], [L, L + 1]]) {
+      add(lp, line, lp, back);
+      add(rp, line, rp, back);
+      for (let x = lp; x < rp; x++) add(x, back, x + 1, back);
+    }
+    return Object.freeze({ W, L, G, lp, rp, border, borderPts, centre: { x: W / 2, y: L / 2 } });
+  }
+
+  function goalScorer(cfg, x, y) {
+    if (x < cfg.lp || x > cfg.rp) return 0;
+    if (y === -1) return 1;
+    if (y === cfg.L + 1) return 2;
+    return 0;
+  }
+
+  function isInside(cfg, x, y) {
+    return (x >= 0 && x <= cfg.W && y >= 0 && y <= cfg.L) || goalScorer(cfg, x, y) !== 0;
+  }
+
+  function newGame(cfg, starter = 1, start = cfg.centre) {
+    return {
+      cfg, starter,
+      start: { x: start.x, y: start.y },
+      ball: { x: start.x, y: start.y },
+      turn: starter, extra: false,
+      used: new Set(), pts: new Set(), segs: [], moves: [], result: null,
+    };
+  }
+
+  function clone(s) {
+    return { ...s, ball: { ...s.ball }, used: new Set(s.used), pts: new Set(s.pts),
+      segs: s.segs.slice(), moves: s.moves.slice(), result: s.result && { ...s.result } };
+  }
+
+  function isTouched(state, x, y) {
+    const k = pk(x, y);
+    return state.cfg.borderPts.has(k) || state.pts.has(k);
+  }
+
+  function legalMoves(state) {
+    if (state.result) return [];
+    const { cfg, ball } = state;
+    const out = [];
+    for (let d = 0; d < 8; d++) {
+      const x = ball.x + DIRS[d][0], y = ball.y + DIRS[d][1];
+      if (!isInside(cfg, x, y)) continue;
+      const goal = goalScorer(cfg, x, y);
+      if (goal) {
+        const mx = (ball.x + x) / 2;
+        if (mx < cfg.lp || mx > cfg.rp) continue;
+      }
+      const k = sk(ball.x, ball.y, x, y);
+      if (state.used.has(k) || cfg.border.has(k)) continue;
+      out.push({ dir: d, name: DIR_NAMES[d], x, y, goal, bounce: !goal && isTouched(state, x, y) });
+    }
+    return out;
+  }
+
+  function applyMove(state, dir) {
+    const mv = legalMoves(state).find(m => m.dir === dir);
+    if (!mv) return null;
+    const p = state.turn;
+    const from = { ...state.ball }, to = { x: mv.x, y: mv.y };
+    const bounce = isTouched(state, to.x, to.y);
+    const s = clone(state);
+    s.used.add(sk(from.x, from.y, to.x, to.y));
+    s.pts.add(pk(from.x, from.y));
+    s.pts.add(pk(to.x, to.y));
+    s.segs.push({ x1: from.x, y1: from.y, x2: to.x, y2: to.y, p });
+    s.moves.push({ dir, from, to, p, bounce });
+    s.ball = to;
+    if (mv.goal) {
+      s.extra = false;
+      s.result = { winner: mv.goal, loser: 3 - mv.goal, reason: mv.goal === p ? 'goal' : 'owngoal' };
+      return s;
+    }
+    s.turn = bounce ? p : 3 - p;
+    s.extra = bounce;
+    if (legalMoves(s).length === 0) {
+      s.result = { winner: 3 - s.turn, loser: s.turn, reason: 'blocked' };
+    }
+    return s;
+  }
+
+  function undo(state) {
+    if (!state.moves.length) return state;
+    let s = newGame(state.cfg, state.starter, state.start);
+    for (const m of state.moves.slice(0, -1)) s = applyMove(s, m.dir);
+    return s;
+  }
+
+  /** Player `p` loses for a reason outside the moves ('time' or 'resign'). */
+  function endBy(state, p, reason) {
+    const s = clone(state);
+    s.extra = false;
+    s.result = { winner: 3 - p, loser: p, reason };
+    return s;
+  }
+  const timeout = (state, p) => endBy(state, p, 'time');
+
+  function winner(state) {
+    return state.result ? state.result.winner : null;
+  }
+
+  return { DIRS, DIR_NAMES, pk, sk, makeConfig, goalScorer, isInside, newGame, isTouched, legalMoves, applyMove, undo, endBy, timeout, winner };
+})();
+</script>
+
+<!-- ======================================================================
+     Online play: transport, sync protocol, rendering and input.
+     ====================================================================== -->
+<script id="ui">
+(() => {
+  'use strict';
+  // ---- Supabase project settings (see README.md). Leave empty for local test mode. ----
+  const SUPABASE_URL = '';       // e.g. 'https://abcdefghijkl.supabase.co'
+  const SUPABASE_ANON_KEY = '';  // Project Settings → API Keys → anon / publishable key
+  const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
+
+  const FIELD_WIDTH = 8;
+  const FIELD_LENGTH = 10;
+  const GOAL_WIDTH = 2;
+  const CLOCK_START_MS = 120000;
+  const CLOCK_INC_MS = 4000;
+  const PING_MS = 2500;       // heartbeat interval
+  const OFFLINE_MS = 8000;    // opponent considered offline after this silence
+  const HIT_RADIUS = 0.75;
+  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const NAME_KEY = 'psOnline.name';
+  const SESSION_KEY = 'psOnline.session.v1';
+
+  const G = PaperSoccer;
+  const CFG = G.makeConfig(FIELD_WIDTH, FIELD_LENGTH, GOAL_WIDTH);
+  const $ = id => document.getElementById(id);
+  const svg = $('board'), ballEl = $('ball'), preview = $('preview');
+  const params = new URLSearchParams(location.search);
+  const forceLocal = params.has('local');
+  const useSupabase = !forceLocal && !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
+
+  // ---------- storage (every access guarded) ----------
+  const store = {
+    get(area, key) { try { const v = window[area].getItem(key); return v == null ? null : JSON.parse(v); } catch (e) { return null; } },
+    set(area, key, val) { try { window[area].setItem(key, JSON.stringify(val)); } catch (e) { /* unavailable */ } },
+    del(area, key) { try { window[area].removeItem(key); } catch (e) { /* unavailable */ } },
+  };
+  let myName = String(store.get('localStorage', NAME_KEY) || '').slice(0, 16);
+
+  // ---------- match state ----------
+  let state, gameNo, score, names, clockOn, clockPref, clocks, scoredFor;
+  function resetMatch() {
+    state = G.newGame(CFG, 1);
+    gameNo = 1;
+    score = [0, 0];
+    names = ['', ''];
+    clockOn = false;
+    clockPref = false;
+    clocks = { 1: CLOCK_START_MS, 2: CLOCK_START_MS };
+    scoredFor = 0;
+  }
+  resetMatch();
+
+  // ---------- network state ----------
+  const net = { transport: null, room: null, id: null, seat: null, peerId: null, peerSeen: 0, everMet: false, status: 'idle' };
+  let undoPending = null;   // my request waiting for an answer: {gameNo, seq}
+  let undoAsk = null;       // opponent's request waiting for my answer
+  let endShownFor = 0, endDismissedFor = 0, endTimer = null, endTimerAt = 0;
+  const endTimerPending = () => performance.now() < endTimerAt;
+  let moves = [], hoverDir = null, flipped = false, lastTick = performance.now();
+
+  const peerSeat = () => 3 - net.seat;
+  const peerOnline = () => !!net.peerId && Date.now() - net.peerSeen < OFFLINE_MS;
+  const name = p => (names[p - 1] || '').trim() || 'Player ' + p;
+  const randomId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  const randomCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+
+  // ---------- snapshots: a game is its starter plus the list of move directions ----------
+  function snapshot() {
+    return {
+      gameNo, starter: state.starter, moves: state.moves.map(m => m.dir), result: state.result,
+      score: score.slice(), scoredFor, names: names.slice(), clockOn, clockPref, clocks: { ...clocks },
+    };
+  }
+  function rebuild(snap) {
+    let s = G.newGame(CFG, snap.starter === 2 ? 2 : 1);
+    for (const d of snap.moves || []) {
+      const n = G.applyMove(s, d);
+      if (!n) return null;
+      s = n;
+    }
+    if (snap.result && !s.result) s = G.endBy(s, snap.result.loser, snap.result.reason);
+    return s;
+  }
+  const rank = snap => [snap.gameNo | 0, (snap.moves || []).length, snap.result ? 1 : 0];
+  function newer(a, b) {
+    const ra = rank(a), rb = rank(b);
+    for (let i = 0; i < 3; i++) if (ra[i] !== rb[i]) return ra[i] > rb[i];
+    return false;
+  }
+  function adopt(snap) {
+    const s = rebuild(snap);
+    if (!s) return false;
+    state = s;
+    gameNo = snap.gameNo | 0 || 1;
+    score = [snap.score?.[0] | 0, snap.score?.[1] | 0];
+    scoredFor = snap.scoredFor | 0;
+    clockOn = !!snap.clockOn;
+    clockPref = !!snap.clockPref;
+    clocks = { 1: +snap.clocks?.[1] || CLOCK_START_MS, 2: +snap.clocks?.[2] || CLOCK_START_MS };
+    undoPending = undoAsk = null;
+    return true;
+  }
+  function persist() {
+    if (!net.room) return;
+    store.set('sessionStorage', SESSION_KEY, { room: net.room, id: net.id, seat: net.seat, peerId: net.peerId, snap: snapshot() });
+  }
+
+  // ---------- transports ----------
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (window.supabase) return resolve();
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Could not load ' + src));
+      document.head.append(s);
+    });
+  }
+  // Local test mode: tabs of the same browser talk through BroadcastChannel.
+  function localTransport(room, onMsg, onStatus) {
+    let bc;
+    try { bc = new BroadcastChannel('psoc-' + room); }
+    catch (e) { setTimeout(() => onStatus('error'), 0); return { send() {}, close() {} }; }
+    bc.onmessage = e => onMsg(e.data);
+    setTimeout(() => onStatus('ok'), 0);
+    return { send: m => bc.postMessage(m), close: () => bc.close() };
+  }
+  // Online mode: a Supabase Realtime broadcast channel per room (no database tables needed).
+  async function supabaseTransport(room, onMsg, onStatus) {
+    await loadScript(SUPABASE_JS);
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+    const ch = client.channel('psoc-' + room, { config: { broadcast: { self: false } } });
+    ch.on('broadcast', { event: 'msg' }, ({ payload }) => onMsg(payload));
+    ch.subscribe(status => onStatus(status === 'SUBSCRIBED' ? 'ok' : status === 'CLOSED' ? 'closed' : 'error'));
+    return {
+      send: m => { try { Promise.resolve(ch.send({ type: 'broadcast', event: 'msg', payload: m })).catch(() => {}); } catch (e) { /* retried by sync */ } },
+      close: () => { try { client.removeChannel(ch); } catch (e) { /* ignore */ } },
+    };
+  }
+
+  async function connect() {
+    net.status = 'connecting';
+    renderConn();
+    const onStatus = st => {
+      net.status = st;
+      if (st === 'ok') sendHello(true);
+      renderAll(false);
+    };
+    try {
+      net.transport = useSupabase
+        ? await supabaseTransport(net.room, onMsg, onStatus)
+        : localTransport(net.room, onMsg, onStatus);
+    } catch (e) {
+      net.status = 'error';
+      showToast('Could not reach the game server. Check your connection and reload.', 6000);
+      renderConn();
+    }
+  }
+
+  function send(t, extra) {
+    if (net.transport && net.status === 'ok') net.transport.send({ t, from: net.id, ...extra });
+  }
+  function sendHello(reply) {
+    send('hello', { seat: net.seat, name: myName, snap: snapshot(), reply });
+  }
+
+  // ---------- protocol ----------
+  function onMsg(m) {
+    if (!m || typeof m !== 'object' || m.from === net.id) return;
+    if (m.to && m.to !== net.id) return;
+    if (m.t === 'full') { leaveRoom('That game already has two players.'); return; }
+    if (m.t === 'hello') { onHello(m); return; }
+    if (m.from !== net.peerId) {
+      if (!peerOnline()) sendHello(true); // unknown sender: introduce ourselves
+      return;
+    }
+    net.peerSeen = Date.now();
+    const ps = peerSeat();
+    switch (m.t) {
+      case 'ping': break;
+      case 'bye': net.peerSeen = 0; break;
+      case 'move': onRemoteMove(m); break;
+      case 'name': names[ps - 1] = String(m.name || '').slice(0, 16); break;
+      case 'resign':
+        if (m.gameNo === gameNo && !state.result) { state = G.endBy(state, ps, 'resign'); finish(); }
+        break;
+      case 'timeout':
+        if (m.gameNo === gameNo && !state.result && (m.seat === 1 || m.seat === 2)) { state = G.endBy(state, m.seat, 'time'); finish(); }
+        break;
+      case 'new':
+        if (m.gameNo === gameNo + 1 && state.result) { startNext(); showToast(`${name(ps)} started a new game.`); }
+        else if (m.gameNo > gameNo) sendHello(true);
+        break;
+      case 'settings':
+        clockPref = !!m.clockPref;
+        if (m.gameNo === gameNo && !state.moves.length && !state.result) resetClocks(clockPref);
+        showToast(`${name(ps)} turned the clock ${clockPref ? 'on' : 'off'}${clockPref !== clockOn ? ' (from next game)' : ''}.`);
+        break;
+      case 'undoReq': {
+        const last = state.moves[state.moves.length - 1];
+        if (m.gameNo === gameNo && m.seq === state.moves.length && last && last.p === ps && !state.result) {
+          undoAsk = { gameNo: m.gameNo, seq: m.seq };
+        } else {
+          send('undoNo', { gameNo: m.gameNo, seq: m.seq });
+        }
+        break;
+      }
+      case 'undoOk':
+        if (undoPending && m.gameNo === gameNo && m.seq === undoPending.seq && state.moves.length === m.seq) {
+          state = G.undo(state);
+        }
+        undoPending = null;
+        break;
+      case 'undoNo':
+        if (undoPending) showToast(`${name(ps)} declined the undo.`);
+        undoPending = null;
+        break;
+    }
+    renderAll(m.t === 'move');
+  }
+
+  function onHello(m) {
+    const known = m.from === net.peerId;
+    if (!known && net.peerId && peerOnline()) { send('full', { to: m.from }); return; }
+    // Seats: keep ours if we have one; a newcomer takes the free seat; ties go to the lower id.
+    const prevSeat = net.seat;
+    if (net.seat == null) net.seat = m.seat ? 3 - m.seat : (net.id < m.from ? 1 : 2);
+    else if (m.seat === net.seat && net.id > m.from) net.seat = 3 - net.seat;
+    net.peerId = m.from;
+    net.peerSeen = Date.now();
+    net.everMet = true;
+    if (m.snap && newer(m.snap, snapshot())) adopt(m.snap);
+    if (typeof m.name === 'string') names[peerSeat() - 1] = m.name.slice(0, 16);
+    names[net.seat - 1] = myName;
+    if (m.reply) sendHello(false);
+    if (prevSeat !== net.seat) buildStatic();
+    renderAll(false);
+  }
+
+  function onRemoteMove(m) {
+    if (m.gameNo !== gameNo || m.seq !== state.moves.length || state.turn !== peerSeat() || state.result) {
+      sendHello(true); // out of sync: exchange snapshots, the more advanced one wins
+      return;
+    }
+    const next = G.applyMove(state, m.dir);
+    if (!next) { sendHello(true); return; }
+    state = next;
+    if (m.clocks) clocks = { 1: +m.clocks[1], 2: +m.clocks[2] };
+    undoPending = undoAsk = null;
+    if (next.result) finish();
+  }
+
+  setInterval(() => {
+    if (!net.transport || net.status !== 'ok') return;
+    if (peerOnline()) send('ping');
+    else sendHello(true);
+    renderConn();
+  }, PING_MS);
+
+  // ---------- local actions ----------
+  const canPlay = () => net.seat && !state.result && state.turn === net.seat && peerOnline() && !undoPending && !undoAsk;
+
+  function shake() {
+    const w = $('boardWrap');
+    w.classList.remove('shake');
+    void w.offsetWidth;
+    w.classList.add('shake');
+  }
+
+  function tryMove(dir) {
+    if (!canPlay() || dir < 0) {
+      shake();
+      if (!state.result && net.seat && state.turn !== net.seat) showToast(`It's ${name(peerSeat())}'s turn.`, 1500);
+      else if (!peerOnline() && !state.result) showToast('Waiting for your opponent to connect.', 1500);
+      return;
+    }
+    const prev = state;
+    const next = G.applyMove(state, dir);
+    if (!next) { shake(); return; }
+    state = next;
+    if (clockOn && !next.result && next.turn !== prev.turn) clocks[prev.turn] += CLOCK_INC_MS;
+    send('move', { gameNo, seq: prev.moves.length, dir, clocks: { ...clocks } });
+    hoverDir = null;
+    if (next.result) finish();
+    renderAll(true);
+  }
+
+  function finish() {
+    if (scoredFor !== gameNo) {
+      score[state.result.winner - 1]++;
+      scoredFor = gameNo;
+    }
+    undoPending = undoAsk = null;
+    // The end screen waits for the last move's animation before appearing.
+    endTimerAt = performance.now() + 450;
+    clearTimeout(endTimer);
+    endTimer = setTimeout(() => renderAll(false), 460);
+  }
+
+  function resetClocks(on) {
+    clockOn = on;
+    clocks = { 1: CLOCK_START_MS, 2: CLOCK_START_MS };
+  }
+
+  function startNext() {
+    gameNo++;
+    state = G.newGame(CFG, 3 - state.starter);
+    resetClocks(clockPref);
+    undoPending = undoAsk = null;
+    hoverDir = null;
+  }
+
+  function requestUndo() {
+    const last = state.moves[state.moves.length - 1];
+    if (state.result || !last || last.p !== net.seat || undoPending || !peerOnline()) { shake(); return; }
+    undoPending = { gameNo, seq: state.moves.length };
+    send('undoReq', undoPending);
+    renderAll(false);
+  }
+
+  function resign() {
+    if (state.result || !net.seat || !peerOnline()) { shake(); return; }
+    if (!confirm('Resign this game? Your opponent gets the point.')) return;
+    state = G.endBy(state, net.seat, 'resign');
+    send('resign', { gameNo });
+    finish();
+    renderAll(false);
+  }
+
+  // ---------- clock ----------
+  setInterval(() => {
+    const now = performance.now();
+    const dt = now - lastTick;
+    lastTick = now;
+    if (!clockOn || state.result || !net.seat || !peerOnline() || $('app').hidden) return;
+    clocks[state.turn] -= dt;
+    if (clocks[state.turn] <= 0) {
+      const loser = state.turn;
+      clocks[loser] = 0;
+      state = G.endBy(state, loser, 'time');
+      send('timeout', { gameNo, seat: loser });
+      finish();
+      renderAll(false);
+    } else {
+      renderClocks();
+    }
+  }, 100);
+
+  // ---------- rendering ----------
+  // The board is shown from each player's side: your own goal is at the bottom.
+  const V = (x, y) => flipped ? [CFG.W - x, CFG.L - y] : [x, y];
+
+  function buildStatic() {
+    flipped = net.seat === 2;
+    const { W, L, G: GW, lp, rp } = CFG;
+    const M = 0.5;
+    svg.setAttribute('viewBox', `${-M} ${-1 - M} ${W + 2 * M} ${L + 2 + 2 * M}`);
+    let h = `<rect class="runoff" x="${-M}" y="${-1 - M}" width="${W + 2 * M}" height="${L + 2 + 2 * M}" rx="0.3"/>`;
+    for (let y = 0; y < L; y++) h += `<rect class="stripe ${y % 2 ? 'b' : 'a'}" x="0" y="${y}" width="${W}" height="1"/>`;
+    const topScorer = flipped ? 2 : 1; // who scores in the goal shown at the top
+    h += `<rect class="goalfill p${topScorer}" x="${lp}" y="-1" width="${GW}" height="1"/>`;
+    h += `<rect class="goalfill p${3 - topScorer}" x="${lp}" y="${L}" width="${GW}" height="1"/>`;
+    for (let x = 1; x < W; x++) h += `<line class="gridline" x1="${x}" y1="0" x2="${x}" y2="${L}"/>`;
+    for (let y = 1; y < L; y++) h += `<line class="gridline" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
+    h += `<line class="decor" x1="0" y1="${L / 2}" x2="${W}" y2="${L / 2}"/>`;
+    h += `<circle class="decor" cx="${W / 2}" cy="${L / 2}" r="1.5"/>`;
+    h += `<line class="mouth" x1="${lp}" y1="0" x2="${rp}" y2="0"/><line class="mouth" x1="${lp}" y1="${L}" x2="${rp}" y2="${L}"/>`;
+    for (const key of CFG.border) {
+      const [a, b] = key.split('|').map(p => V(...p.split(',').map(Number)));
+      h += `<line class="border" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
+    }
+    h += `<text class="glabel" x="${W / 2}" y="-0.5">P${topScorer} ▲</text>`;
+    h += `<text class="glabel" x="${W / 2}" y="${L + 0.5}">P${3 - topScorer} ▼</text>`;
+    $('layerStatic').innerHTML = h;
+  }
+
+  function renderBoard(animate) {
+    const { W, L } = CFG;
+    const n = state.segs.length;
+    let s = '';
+    state.segs.forEach((g, i) => {
+      const [x1, y1] = V(g.x1, g.y1), [x2, y2] = V(g.x2, g.y2);
+      const c = `x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"`;
+      if (i === n - 1) s += `<line class="halo" ${c}/>`;
+      s += `<line class="seg p${g.p}${i === n - 1 ? ' last' : ''}${i === n - 1 && animate ? ' fresh' : ''}" ${c} pathLength="1"/>`;
+    });
+    $('layerSegs').innerHTML = s;
+
+    let p = '';
+    for (let y = -1; y <= L + 1; y++) {
+      for (let x = 0; x <= W; x++) {
+        if (!G.isInside(CFG, x, y)) continue;
+        const t = G.isTouched(state, x, y);
+        const [vx, vy] = V(x, y);
+        p += `<circle class="pt${t ? ' t' : ''}" cx="${vx}" cy="${vy}" r="${t ? 0.1 : 0.055}"/>`;
+      }
+    }
+    $('layerPts').innerHTML = p;
+
+    moves = canPlay() ? G.legalMoves(state).map(m => ({ ...m, v: V(m.x, m.y) })) : [];
+    if (!moves.some(m => m.dir === hoverDir)) hoverDir = null;
+    let t = '';
+    for (const m of moves) {
+      const cls = `tg p${state.turn}${m.bounce ? ' bounce' : ''}${m.goal ? ' goal' : ''}${m.dir === hoverDir ? ' hover' : ''}`;
+      t += `<circle class="${cls}" cx="${m.v[0]}" cy="${m.v[1]}" r="${m.bounce ? 0.22 : 0.19}"/>`;
+    }
+    $('layerTargets').innerHTML = t;
+
+    const hm = moves.find(m => m.dir === hoverDir);
+    if (hm) {
+      const [bx, by] = V(state.ball.x, state.ball.y);
+      preview.setAttribute('x1', bx); preview.setAttribute('y1', by);
+      preview.setAttribute('x2', hm.v[0]); preview.setAttribute('y2', hm.v[1]);
+      preview.setAttribute('class', 'preview p' + state.turn);
+      preview.setAttribute('visibility', 'visible');
+    } else {
+      preview.setAttribute('visibility', 'hidden');
+    }
+
+    const [bx, by] = V(state.ball.x, state.ball.y);
+    ballEl.style.transform = `translate(${bx}px, ${by}px)`;
+  }
+
+  function fmt(ms) {
+    ms = Math.max(0, ms);
+    if (ms < 10000) return (ms / 1000).toFixed(1);
+    const s = Math.ceil(ms / 1000);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+  function renderClocks() {
+    for (const p of [1, 2]) {
+      const el = $('clock' + p);
+      el.hidden = !clockOn;
+      el.textContent = '⏱ ' + fmt(clocks[p]);
+      el.classList.toggle('low', clocks[p] < 20000);
+    }
+  }
+
+  function renderConn() {
+    const el = $('conn');
+    let cls = 'warn', text;
+    if (net.status === 'connecting' || net.status === 'idle') text = 'Connecting…';
+    else if (net.status !== 'ok') { cls = 'bad'; text = 'Connection lost, retrying…'; }
+    else if (peerOnline()) { cls = 'ok'; text = `${name(peerSeat())} is online`; }
+    else if (net.everMet) text = `${name(net.seat ? peerSeat() : 2)} is offline${clockOn ? ', clock paused' : ''}`;
+    else text = 'Waiting for opponent…';
+    el.className = 'conn ' + cls;
+    el.textContent = text + (useSupabase ? '' : ' · local test mode');
+  }
+
+  const REASONS = {
+    goal: r => `${name(r.winner)} scored in ${name(r.loser)}'s goal.`,
+    owngoal: r => `${name(r.loser)} put the ball into their own goal.`,
+    blocked: r => `${name(r.loser)} was blocked with no legal move.`,
+    time: r => `${name(r.loser)} ran out of time.`,
+    resign: r => `${name(r.loser)} resigned.`,
+  };
+  const SHORT = { goal: 'goal', owngoal: 'own goal', blocked: 'opponent blocked', time: 'time', resign: 'resignation' };
+
+  function renderHeader() {
+    const r = state.result;
+    for (const p of [1, 2]) {
+      $('pl' + p).classList.toggle('active', !r && state.turn === p);
+      $('score' + p).textContent = score[p - 1];
+      $('you' + p).hidden = net.seat !== p;
+      const inp = $('name' + p);
+      inp.readOnly = net.seat !== p;
+      inp.tabIndex = net.seat === p ? 0 : -1;
+      if (document.activeElement !== inp) inp.value = names[p - 1];
+      inp.placeholder = 'Player ' + p;
+    }
+    const who = r ? r.winner : state.turn;
+    $('statusChip').className = 'chip p' + who;
+    $('statusChip').textContent = 'P' + who;
+    let text;
+    if (r) text = `${r.winner === net.seat ? 'You win' : name(r.winner) + ' wins'} — ${SHORT[r.reason]}`;
+    else if (!net.seat) text = 'Waiting for opponent…';
+    else if (undoPending) text = `Waiting for ${name(peerSeat())} to accept the undo…`;
+    else if (state.turn === net.seat) text = 'Your move ↑';
+    else text = `${name(state.turn)} is playing…`;
+    $('statusText').textContent = text;
+    $('extra').hidden = !(state.extra && !r);
+
+    const last = state.moves[state.moves.length - 1];
+    $('btnUndo').disabled = !!r || !last || last.p !== net.seat || !!undoPending || !peerOnline();
+    $('btnResign').disabled = !!r || !net.seat || !peerOnline();
+    const bc = $('btnClock');
+    bc.setAttribute('aria-pressed', String(clockPref));
+    bc.textContent = 'Clock: ' + (clockPref ? 'On' : 'Off') + (clockPref !== clockOn ? '*' : '');
+    bc.title = clockPref !== clockOn ? 'Takes effect next game' : 'Chess clock: 2:00 + 4 s per turn';
+    renderClocks();
+    renderConn();
+  }
+
+  function renderOverlays() {
+    $('waitOverlay').hidden = net.everMet || !net.room;
+    const joining = !net.seat;
+    $('waitTitle').textContent = joining ? 'Joining game…' : 'Invite your opponent';
+    $('waitText').textContent = joining ? 'Waiting for the player who created this game:' : 'Send them the link, or tell them this code:';
+    const r = state.result;
+    const endOv = $('endOverlay');
+    if (r && !endTimerPending() && endDismissedFor !== gameNo) {
+      if (endShownFor !== gameNo) {
+        endShownFor = gameNo;
+        const t = $('endTitle');
+        t.textContent = '';
+        const chip = document.createElement('span');
+        chip.className = 'chip p' + r.winner;
+        chip.textContent = 'P' + r.winner;
+        t.append(chip, r.winner === net.seat ? ' You win!' : ` ${name(r.winner)} wins!`);
+        $('endReason').textContent = REASONS[r.reason](r);
+        endOv.hidden = false;
+        $('playAgain').focus();
+      }
+    } else {
+      endOv.hidden = true;
+    }
+    $('askBanner').hidden = !undoAsk;
+    if (undoAsk) $('askText').textContent = `${name(peerSeat())} asks to undo their last move.`;
+  }
+
+  function renderAll(animate) {
+    renderBoard(animate);
+    renderHeader();
+    renderOverlays();
+    persist();
+  }
+
+  let toastTimer = null;
+  function showToast(text, ms = 3000) {
+    $('toastText').textContent = text;
+    $('toast').hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { $('toast').hidden = true; }, ms);
+  }
+
+  // ---------- rooms ----------
+  function showLobby(error) {
+    $('app').hidden = true;
+    $('lobby').hidden = false;
+    $('lobbyName').value = myName;
+    $('lobbyErr').hidden = !error;
+    $('lobbyErr').textContent = error || '';
+    const note = $('modeNote');
+    note.hidden = useSupabase;
+    note.textContent = forceLocal
+      ? 'Local test mode (?local): games only connect between tabs of this browser.'
+      : 'The online server is not configured yet (see README.md), so this runs in local test mode: games only connect between tabs of this browser.';
+  }
+
+  function enterRoom(code, creator) {
+    const sess = store.get('sessionStorage', SESSION_KEY);
+    resetMatch();
+    undoPending = undoAsk = null;
+    endShownFor = endDismissedFor = 0;
+    if (sess && sess.room === code && sess.id) {
+      net.id = sess.id;
+      net.seat = sess.seat === 1 || sess.seat === 2 ? sess.seat : null;
+      net.peerId = sess.peerId || null;
+      if (sess.snap) {
+        adopt(sess.snap);
+        if (Array.isArray(sess.snap.names)) names = sess.snap.names.slice(0, 2).map(n => String(n || ''));
+      }
+      if (state.result) endDismissedFor = gameNo;
+    } else {
+      net.id = randomId();
+      net.seat = creator ? 1 : null;
+      net.peerId = null;
+    }
+    net.everMet = !!net.peerId;
+    net.peerSeen = 0;
+    net.room = code;
+    if (net.seat) names[net.seat - 1] = myName;
+    history.replaceState(null, '', '?room=' + code + (forceLocal ? '&local' : ''));
+    $('roomCode').textContent = code;
+    $('waitCode').textContent = code;
+    $('lobby').hidden = true;
+    $('app').hidden = false;
+    buildStatic();
+    ballEl.classList.add('noanim');
+    renderAll(false);
+    requestAnimationFrame(() => requestAnimationFrame(() => ballEl.classList.remove('noanim')));
+    connect();
+  }
+
+  function leaveRoom(error) {
+    send('bye');
+    if (net.transport) net.transport.close();
+    Object.assign(net, { transport: null, room: null, id: null, seat: null, peerId: null, peerSeen: 0, everMet: false, status: 'idle' });
+    store.del('sessionStorage', SESSION_KEY);
+    resetMatch();
+    history.replaceState(null, '', location.pathname + (forceLocal ? '?local' : ''));
+    if ($('menu').open) $('menu').close();
+    showLobby(error);
+  }
+
+  function inviteUrl() {
+    return location.origin + location.pathname + '?room=' + net.room + (forceLocal ? '&local' : '');
+  }
+  async function shareInvite() {
+    const url = inviteUrl();
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Paper Soccer', text: `Join my paper soccer game (code ${net.room})`, url }); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    copyText(url, 'Invite link copied.');
+  }
+  async function copyText(text, done) {
+    try { await navigator.clipboard.writeText(text); showToast(done); }
+    catch (e) { prompt('Copy this:', text); }
+  }
+
+  // ---------- pointer input ----------
+  function toSvg(e) {
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function pick(e) {
+    const pt = toSvg(e);
+    let best = null, bd = HIT_RADIUS;
+    for (const m of moves) {
+      const d = Math.hypot(m.v[0] - pt.x, m.v[1] - pt.y);
+      if (d < bd) { bd = d; best = m; }
+    }
+    return best;
+  }
+  svg.addEventListener('click', e => {
+    const m = pick(e);
+    if (m) tryMove(m.dir);
+    else if (!canPlay() && !state.result) tryMove(-1);
+  });
+  svg.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    const m = pick(e);
+    const d = m ? m.dir : null;
+    if (d !== hoverDir) { hoverDir = d; renderBoard(false); }
+    svg.style.cursor = m ? 'pointer' : 'default';
+  });
+  svg.addEventListener('pointerleave', () => {
+    if (hoverDir !== null) { hoverDir = null; renderBoard(false); }
+  });
+
+  // ---------- keyboard input (directions are relative to the screen) ----------
+  const KEY_DIRS = {
+    KeyW: 0, KeyE: 1, KeyD: 2, KeyC: 3, KeyX: 4, KeyZ: 5, KeyA: 6, KeyQ: 7,
+    Numpad8: 0, Numpad9: 1, Numpad6: 2, Numpad3: 3, Numpad2: 4, Numpad1: 5, Numpad4: 6, Numpad7: 7,
+  };
+  const ARROWS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+  const dirOf = (dx, dy) => G.DIRS.findIndex(d => d[0] === dx && d[1] === dy);
+  const toLogic = d => d < 0 ? d : flipped ? (d + 4) % 8 : d;
+  let pendingArrow = null;
+
+  document.addEventListener('keydown', e => {
+    if ($('app').hidden || $('menu').open) return;
+    if (e.target.closest && e.target.closest('input, textarea, select')) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); requestUndo(); return; }
+    if (e.key === 'Backspace') { e.preventDefault(); requestUndo(); return; }
+    if (!$('endOverlay').hidden || !$('waitOverlay').hidden) return;
+    if (e.code in KEY_DIRS && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      if (!e.repeat) tryMove(toLogic(KEY_DIRS[e.code]));
+      return;
+    }
+    if (e.key in ARROWS) {
+      e.preventDefault();
+      if (e.repeat) return;
+      const v = ARROWS[e.key];
+      if (!(e.shiftKey || e.altKey)) { pendingArrow = null; tryMove(toLogic(dirOf(v[0], v[1]))); return; }
+      if (pendingArrow && (pendingArrow[0] === 0) !== (v[0] === 0)) {
+        const d = dirOf(pendingArrow[0] + v[0], pendingArrow[1] + v[1]);
+        pendingArrow = null;
+        tryMove(toLogic(d));
+      } else {
+        pendingArrow = v;
+      }
+    }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'Shift' || e.key === 'Alt') pendingArrow = null;
+  });
+
+  // ---------- controls ----------
+  const saveName = v => {
+    myName = v.slice(0, 16);
+    store.set('localStorage', NAME_KEY, myName);
+  };
+  $('lobbyName').addEventListener('input', e => saveName(e.target.value));
+  $('btnCreate').addEventListener('click', () => enterRoom(randomCode(), true));
+  $('joinForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const code = $('joinCode').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length !== 4) { showLobby('Enter the 4-character code.'); return; }
+    enterRoom(code, false);
+  });
+
+  let nameTimer = null;
+  for (const p of [1, 2]) {
+    const inp = $('name' + p);
+    inp.addEventListener('input', () => {
+      if (net.seat !== p) return;
+      saveName(inp.value);
+      names[p - 1] = myName;
+      clearTimeout(nameTimer);
+      nameTimer = setTimeout(() => send('name', { name: myName }), 300);
+      persist();
+    });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  }
+
+  $('btnUndo').addEventListener('click', requestUndo);
+  $('btnResign').addEventListener('click', resign);
+  $('btnClock').addEventListener('click', () => {
+    clockPref = !clockPref;
+    if (!state.moves.length && !state.result) resetClocks(clockPref);
+    send('settings', { clockPref, gameNo });
+    renderAll(false);
+  });
+  $('btnMenu').addEventListener('click', () => $('menu').showModal());
+  $('btnCloseMenu').addEventListener('click', () => $('menu').close());
+  $('menu').addEventListener('click', e => { if (e.target === $('menu')) $('menu').close(); });
+  $('btnLeave').addEventListener('click', () => {
+    if (!state.result && state.moves.length && !confirm('Leave this game? You can rejoin with the same code.')) return;
+    leaveRoom();
+  });
+  $('btnInvite').addEventListener('click', shareInvite);
+  $('btnShare').addEventListener('click', shareInvite);
+  $('btnCopyCode').addEventListener('click', () => copyText(net.room, 'Code copied.'));
+  $('playAgain').addEventListener('click', () => {
+    if (!state.result) return;
+    startNext();
+    send('new', { gameNo });
+    renderAll(false);
+  });
+  $('viewBoard').addEventListener('click', () => {
+    endDismissedFor = gameNo;
+    renderOverlays();
+  });
+  $('btnAccept').addEventListener('click', () => {
+    if (undoAsk && undoAsk.gameNo === gameNo && undoAsk.seq === state.moves.length) {
+      state = G.undo(state);
+      send('undoOk', undoAsk);
+    }
+    undoAsk = null;
+    renderAll(false);
+  });
+  $('btnDecline').addEventListener('click', () => {
+    if (undoAsk) send('undoNo', undoAsk);
+    undoAsk = null;
+    renderAll(false);
+  });
+
+  window.addEventListener('pagehide', () => send('bye'));
+
+  // ---------- start ----------
+  const roomParam = (params.get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  if (roomParam.length === 4) enterRoom(roomParam, false);
+  else showLobby();
+})();
+</script>
+</body>
+</html>
