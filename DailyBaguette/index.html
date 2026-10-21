@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="The Daily Baguette: a morning markets newsletter from Paris (equities, rates, FX, commodities), edition archive.">
+<title>The Daily Baguette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Young+Serif&display=swap">
+<style>
+  /* Layout: masthead band, then a two-column reading room (edition rail + one edition at reading width); stacks to one column with a dropdown on phones. */
+  :root {
+    --paper: #F2F4F7;
+    --surface: #FFFFFF;
+    --ink: #18202E;
+    --muted: #586375;
+    --rule: #D6DCE5;
+    --accent: #1E4CB0;
+    --crust: #9C6210;
+    --up: #17734A;
+    --down: #B0302C;
+    --f-display: "Young Serif", Georgia, "Times New Roman", serif;
+    --f-body: "Literata", Georgia, "Times New Roman", serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --step--1: 0.8125rem;
+    --step-0: 1rem;
+    --step-1: 1.1875rem;
+    --step-2: 1.5rem;
+    --step-3: clamp(1.75rem, 1.3rem + 2vw, 2.5rem);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0F131A;
+      --surface: #161B24;
+      --ink: #E4E7EE;
+      --muted: #9AA3B4;
+      --rule: #2A3140;
+      --accent: #8FAAF2;
+      --crust: #E2AA52;
+      --up: #5DC58B;
+      --down: #F27D74;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0F131A;
+    --surface: #161B24;
+    --ink: #E4E7EE;
+    --muted: #9AA3B4;
+    --rule: #2A3140;
+    --accent: #8FAAF2;
+    --crust: #E2AA52;
+    --up: #5DC58B;
+    --down: #F27D74;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .shell { max-width: 1180px; margin: 0 auto; }
+
+  /* Masthead */
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 24px;
+    padding-block: 28px 20px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .masthead h1 {
+    margin: 0;
+    font-family: var(--f-display);
+    font-weight: 400;
+    font-size: var(--step-3);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+  .masthead p {
+    margin: 0;
+    font-family: var(--f-mono);
+    font-size: var(--step--1);
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .masthead .count { color: var(--crust); }
+
+  /* Reading room */
+  .room {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 48px;
+    padding-block: 28px 64px;
+  }
+  .rail h2, .picker label {
+    margin: 0 0 12px;
+    font-family: var(--f-mono);
+    font-weight: 500;
+    font-size: var(--step--1);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .rail button {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+  }
+  .rail button:hover { background: var(--surface); }
+  .rail button:focus-visible, .picker select:focus-visible, .content a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .rail button[aria-current="true"] {
+    background: var(--surface);
+    border-color: var(--rule);
+  }
+  .rail .d {
+    font-family: var(--f-mono);
+    font-size: var(--step--1);
+    color: var(--crust);
+    font-variant-numeric: tabular-nums;
+  }
+  .rail .h { font-size: 0.9375rem; line-height: 1.4; }
+  .picker { display: none; }
+  .picker select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.9375rem;
+  }
+
+  /* One edition */
+  .edition { min-width: 0; max-width: 72ch; }
+  .edition header { display: grid; gap: 6px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: var(--step--1);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--crust);
+  }
+  .edition header h2 {
+    margin: 0;
+    font-family: var(--f-display);
+    font-weight: 400;
+    font-size: var(--step-2);
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  .status { color: var(--muted); font-style: italic; padding-block: 24px; }
+
+  .content { padding-top: 8px; }
+  .content h2 {
+    font-family: var(--f-display);
+    font-weight: 400;
+    font-size: var(--step-2);
+    line-height: 1.25;
+    margin: 40px 0 12px;
+    text-wrap: balance;
+  }
+  .content h3 {
+    font-size: var(--step-1);
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 28px 0 8px;
+    text-wrap: balance;
+  }
+  .content p, .content ul, .content ol { margin: 0 0 14px; }
+  .content ul, .content ol { padding-left: 1.25em; }
+  .content li { margin-bottom: 6px; }
+  .content li > ul { margin-top: 6px; }
+  .content a { color: var(--accent); text-underline-offset: 2px; overflow-wrap: anywhere; }
+  .content hr { border: 0; border-top: 1px solid var(--rule); margin: 32px 0; }
+  .content em { color: var(--muted); }
+  .content strong em, .content em strong { color: inherit; }
+  .content code { font-family: var(--f-mono); font-size: 0.875em; }
+  .table-wrap { overflow-x: auto; margin: 0 0 16px; }
+  .content table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9375rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .content th {
+    font-family: var(--f-mono);
+    font-weight: 500;
+    font-size: var(--step--1);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px 8px 0;
+    border-bottom: 1px solid var(--ink);
+    white-space: nowrap;
+  }
+  .content td {
+    padding: 8px 12px 8px 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  .content td.up { color: var(--up); }
+  .content td.down { color: var(--down); }
+
+  @media (max-width: 760px) {
+    .room { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 20px 48px; }
+    .rail { display: none; }
+    .picker { display: grid; gap: 8px; }
+    .picker label { margin: 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .content { animation: settle 220ms ease-out; }
+    @keyframes settle { from { opacity: 0.4; } to { opacity: 1; } }
+  }
+  /* Site footer (GitHub Pages edition) */
+  .site-foot {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px;
+    padding-block: 20px 40px; border-top: 1px solid var(--rule);
+    font-family: var(--f-mono); font-size: var(--step--1); color: var(--muted); letter-spacing: 0.02em;
+  }
+  .site-foot a { color: var(--accent); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="masthead">
+    <h1>The Daily Baguette</h1>
+    <p>Edition archive · <span class="count" id="count">loading</span></p>
+  </header>
+
+  <div class="room">
+    <nav class="rail" aria-label="Editions">
+      <h2>Editions</h2>
+      <ol id="list"></ol>
+    </nav>
+
+    <div class="picker">
+      <label for="edition-select">Edition</label>
+      <select id="edition-select"></select>
+    </div>
+
+    <article class="edition" id="edition" aria-live="polite">
+      <header id="edition-head">
+        <span class="eyebrow" id="edition-date">The Daily Baguette</span>
+        <h2 id="edition-title">Loading the latest edition</h2>
+      </header>
+      <div class="content" id="content">
+        <p class="status">Fetching the edition list.</p>
+      </div>
+    </article>
+  </div>
+  <footer class="site-foot">
+    <span>For information only, not investment advice. &ldquo;Our call&rdquo; figures are the author&rsquo;s own estimates.</span>
+    <a href="https://84piranhas.github.io/projects/">&larr; Built with Claude</a>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script>
+(function () {
+  var listEl = document.getElementById('list');
+  var selectEl = document.getElementById('edition-select');
+  var countEl = document.getElementById('count');
+  var dateEl = document.getElementById('edition-date');
+  var titleEl = document.getElementById('edition-title');
+  var contentEl = document.getElementById('content');
+  var editions = [];
+  var current = null;
+
+  var fmt = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  function prettyDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!m) return iso || '';
+    return fmt.format(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])));
+  }
+  function idOf(e) { return e.file.replace(/^.*\//, '').replace(/^the-daily-baguette-/, '').replace(/\.md$/, ''); }
+
+  function status(msg) {
+    contentEl.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'status';
+    p.textContent = msg;
+    contentEl.appendChild(p);
+  }
+
+  function splitSubject(md) {
+    var lines = md.split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      var m = /^\*\*Subject:\s*(.+?)\*\*\s*$/.exec(lines[i].trim());
+      if (!m) return { subject: null, body: md };
+      lines.splice(i, 1);
+      return { subject: m[1], body: lines.join('\n') };
+    }
+    return { subject: null, body: md };
+  }
+
+  function decorate(root) {
+    root.querySelectorAll('a[href]').forEach(function (a) {
+      if (/^https?:/i.test(a.getAttribute('href'))) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    });
+    root.querySelectorAll('table').forEach(function (t) {
+      var wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      t.parentNode.insertBefore(wrap, t);
+      wrap.appendChild(t);
+    });
+    root.querySelectorAll('td').forEach(function (td) {
+      var t = td.textContent.trim();
+      if (/^\+\s?\d/.test(t)) td.classList.add('up');
+      else if (/^[−\-]\s?\d/.test(t)) td.classList.add('down');
+    });
+  }
+
+  function select(e) {
+    if (!e) return;
+    current = e;
+    var id = idOf(e);
+    listEl.querySelectorAll('button').forEach(function (b) {
+      b.setAttribute('aria-current', b.dataset.id === id ? 'true' : 'false');
+    });
+    selectEl.value = id;
+    try { history.replaceState(null, '', '#' + id); } catch (err) {}
+    dateEl.textContent = prettyDate(e.date);
+    titleEl.textContent = e.headline || 'The Daily Baguette';
+    status('Loading this edition.');
+    fetch(e.file, { cache: 'no-cache' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (md) {
+        if (current !== e) return;
+        var parts = splitSubject(md);
+        if (parts.subject) {
+          var bits = parts.subject.split(/\s+[—–]\s+/);
+          if (bits.length >= 3) {
+            dateEl.textContent = bits.slice(1, -1).join(' · ');
+            titleEl.textContent = bits[bits.length - 1];
+          }
+        }
+        var html = DOMPurify.sanitize(marked.parse(parts.body, { gfm: true }));
+        contentEl.innerHTML = html;
+        decorate(contentEl);
+      })
+      .catch(function () {
+        if (current === e) status('This edition could not be loaded. Reload the page to try again.');
+      });
+  }
+
+  function render() {
+    countEl.textContent = editions.length + (editions.length === 1 ? ' edition' : ' editions');
+    listEl.innerHTML = '';
+    selectEl.innerHTML = '';
+    editions.forEach(function (e) {
+      var id = idOf(e);
+      var li = document.createElement('li');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.id = id;
+      var d = document.createElement('span'); d.className = 'd'; d.textContent = prettyDate(e.date) + (/-v\d+$/.test(id) ? ' · ' + id.replace(/^.*-(v\d+)$/, '$1') : '');
+      var h = document.createElement('span'); h.className = 'h'; h.textContent = e.headline || '';
+      b.appendChild(d); b.appendChild(h);
+      b.addEventListener('click', function () { select(e); });
+      li.appendChild(b);
+      listEl.appendChild(li);
+      var o = document.createElement('option');
+      o.value = id;
+      o.textContent = prettyDate(e.date) + ' — ' + (e.headline || '');
+      selectEl.appendChild(o);
+    });
+    var want = (location.hash || '').replace(/^#/, '');
+    var pick = editions.filter(function (e) { return idOf(e) === want; })[0] || editions[0];
+    if (pick) select(pick);
+    else { titleEl.textContent = 'No editions yet'; status('The first edition will appear here after the next morning run.'); }
+  }
+
+  selectEl.addEventListener('change', function () {
+    var id = selectEl.value;
+    select(editions.filter(function (e) { return idOf(e) === id; })[0]);
+  });
+
+  fetch('editions.json', { cache: 'no-cache' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (data) {
+      editions = (Array.isArray(data) ? data : []).filter(function (e) { return e && e.file && e.date; });
+      editions.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : (a.file < b.file ? -1 : 1); });
+      render();
+    })
+    .catch(function () {
+      countEl.textContent = 'unavailable';
+      titleEl.textContent = 'The edition list could not be loaded';
+      status('Reload the page to try again.');
+    });
+})();
+</script>
+</body>
+</html>
