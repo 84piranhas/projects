@@ -171,8 +171,10 @@
   </div>
 
   <div class="foot collapsible">
-    Données routières © contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
-    (extrait du <span id="osm-date">—</span>), contours © IGN / Etalab.
+    Autoroutes, nationales et départementales : <a href="https://geoservices.ign.fr/bdtopo">BD TOPO</a> © IGN
+    (<span id="ign-date">—</span>). Autres routes et chemins © contributeurs
+    <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> (extrait du <span id="osm-date">—</span>).
+    Contours © IGN / Etalab.
     Résolution ≈ <span id="res">300</span> m : les distances sont arrondies à la centaine de mètres.
   </div>
 </aside>
@@ -180,12 +182,12 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const CATEGORIES = [
-  { id: 'autoroute',      name: 'Autoroutes',              tags: 'motorway et bretelles' },
-  { id: 'nationale',      name: 'Routes nationales',       tags: 'trunk, primary numérotées N' },
-  { id: 'departementale', name: 'Routes départementales',  tags: 'primary, secondary, tertiary' },
-  { id: 'communale',      name: 'Routes communales',       tags: 'unclassified, road' },
-  { id: 'rue',            name: 'Rues',                    tags: 'residential, living_street, pedestrian, service' },
-  { id: 'chemin',         name: 'Chemins',                 tags: 'track, path, footway, cycleway, bridleway, steps' },
+  { id: 'autoroute',      name: 'Autoroutes',              tags: 'BD TOPO (IGN), avec bretelles' },
+  { id: 'nationale',      name: 'Routes nationales',       tags: 'BD TOPO (IGN), dont T… en Corse' },
+  { id: 'departementale', name: 'Routes départementales',  tags: 'BD TOPO (IGN)' },
+  { id: 'communale',      name: 'Routes communales',       tags: 'OSM : unclassified, road et autres routes hors réseau A/N/D' },
+  { id: 'rue',            name: 'Rues',                    tags: 'OSM : residential, living_street, pedestrian, service' },
+  { id: 'chemin',         name: 'Chemins',                 tags: 'OSM : track, path, footway, cycleway, bridleway, steps' },
 ];
 const DEFAULT_SELECTION = ['autoroute', 'nationale', 'departementale'];
 const SEA = 255;            // value used in every layer for pixels outside France
@@ -370,6 +372,7 @@ async function init() {
   els.status.textContent = 'Chargement des données…';
   meta = await (await fetch('data/meta.json')).json();
   document.getElementById('osm-date').textContent = meta.osmDate;
+  document.getElementById('ign-date').textContent = `téléchargée le ${meta.ignDate}`;
   document.getElementById('res').textContent = meta.groundResolutionM;
 
   canvas = document.createElement('canvas');
