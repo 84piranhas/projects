@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loin des routes</title>
+<meta name="description" content="Carte interactive des zones de France métropolitaine situées à plus de X km d'une route, selon le type de route.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --panel: rgba(255, 255, 255, 0.94);
+    --text: #1d1d1b;
+    --muted: #6b6a66;
+    --line: #e2e0da;
+    --accent: #d9480f;
+    --accent-soft: #fde4d6;
+    --shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151514;
+      --panel: rgba(30, 30, 28, 0.94);
+      --text: #f0efe9;
+      --muted: #a3a29b;
+      --line: #3a3935;
+      --accent: #ff7a3d;
+      --accent-soft: #4a2617;
+      --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151514;
+    --panel: rgba(30, 30, 28, 0.94);
+    --text: #f0efe9;
+    --muted: #a3a29b;
+    --line: #3a3935;
+    --accent: #ff7a3d;
+    --accent-soft: #4a2617;
+    --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  #map { position: absolute; inset: 0; background: var(--bg); }
+  .far-layer { image-rendering: pixelated; }
+  .base-tiles { filter: grayscale(0.85) contrast(0.9) brightness(1.05); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .base-tiles { filter: grayscale(1) invert(1) brightness(0.85) contrast(0.9); }
+  }
+  :root[data-theme="dark"] .base-tiles { filter: grayscale(1) invert(1) brightness(0.85) contrast(0.9); }
+
+  .panel {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 1000;
+    width: 320px;
+    max-height: calc(100% - 32px);
+    overflow-y: auto;
+    background: var(--panel);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+  }
+  h1 { font-size: 19px; margin: 0 0 2px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 14px; font-size: 13px; }
+  .back { color: var(--muted); font-size: 12px; text-decoration: none; }
+  .back:hover { color: var(--text); }
+
+  .section { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+  .label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .label { font-weight: 600; font-size: 13px; }
+  .km { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 20px; color: var(--accent); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+  .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+
+  .cats { list-style: none; margin: 0; padding: 0; }
+  .cats li { margin: 2px 0; }
+  .cats label {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    column-gap: 8px;
+    padding: 5px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .cats label:hover { background: var(--accent-soft); }
+  .cats input { margin: 2px 0 0; accent-color: var(--accent); }
+  .cats .name { font-weight: 500; }
+  .cats .tags { grid-column: 2; color: var(--muted); font-size: 11.5px; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .presets button {
+    font: inherit; font-size: 12px;
+    border: 1px solid var(--line); background: transparent; color: var(--text);
+    padding: 3px 9px; border-radius: 999px; cursor: pointer;
+  }
+  .presets button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .stat { display: flex; align-items: center; gap: 10px; }
+  .swatch { width: 16px; height: 16px; border-radius: 4px; background: var(--accent); opacity: 0.75; flex: none; }
+  .stat-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-note { color: var(--muted); font-size: 12px; }
+  .status { color: var(--muted); font-size: 12px; min-height: 1em; margin-top: 6px; }
+  .foot { color: var(--muted); font-size: 11px; margin-top: 12px; }
+  .foot a { color: inherit; }
+
+  .toggle { display: none; }
+
+  @media (max-width: 640px) {
+    .panel {
+      top: auto; bottom: 0; left: 0; right: 0;
+      width: auto; max-height: 55%;
+      border-radius: 14px 14px 0 0;
+      padding: 12px 16px 16px;
+    }
+    .panel.collapsed .collapsible { display: none; }
+    .toggle {
+      display: block; float: right;
+      font: inherit; font-size: 12px; border: 1px solid var(--line);
+      background: transparent; color: var(--text); border-radius: 999px; padding: 2px 10px;
+    }
+    .leaflet-bottom.leaflet-right { bottom: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<aside class="panel" id="panel">
+  <button class="toggle" id="toggle" type="button">Réduire</button>
+  <a class="back" href="../">← Projets</a>
+  <h1>Loin des routes</h1>
+  <p class="sub">Les zones de France métropolitaine situées à plus d'une certaine distance de toute route.</p>
+
+  <div class="section">
+    <div class="label-row">
+      <span class="label">Distance minimale</span>
+      <span class="km"><span id="km-value">5</span> km</span>
+    </div>
+    <input id="km" type="range" min="1" max="20" step="1" value="5" aria-label="Distance minimale en kilomètres">
+    <div class="ticks"><span>1 km</span><span>10 km</span><span>20 km</span></div>
+  </div>
+
+  <div class="section collapsible">
+    <div class="label" style="margin-bottom:4px">Ce qui compte comme une route</div>
+    <ul class="cats" id="cats"></ul>
+    <div class="presets">
+      <button type="button" data-preset="autoroute,nationale">Grands axes</button>
+      <button type="button" data-preset="autoroute,nationale,departementale">+ départementales</button>
+      <button type="button" data-preset="autoroute,nationale,departementale,communale,rue">Routes goudronnées</button>
+      <button type="button" data-preset="autoroute,nationale,departementale,communale,rue,chemin">Tout</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="stat">
+      <span class="swatch"></span>
+      <div>
+        <div class="stat-value" id="stat">—</div>
+        <div class="stat-note" id="stat-note">de la superficie métropolitaine</div>
+      </div>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="foot collapsible">
+    Données routières © contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+    (extrait du <span id="osm-date">—</span>), contours © IGN / Etalab.
+    Résolution ≈ <span id="res">300</span> m : les distances sont arrondies à la centaine de mètres.
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const CATEGORIES = [
+  { id: 'autoroute',      name: 'Autoroutes',              tags: 'motorway et bretelles' },
+  { id: 'nationale',      name: 'Routes nationales',       tags: 'trunk, primary numérotées N' },
+  { id: 'departementale', name: 'Routes départementales',  tags: 'primary, secondary, tertiary' },
+  { id: 'communale',      name: 'Routes communales',       tags: 'unclassified, road' },
+  { id: 'rue',            name: 'Rues',                    tags: 'residential, living_street, pedestrian, service' },
+  { id: 'chemin',         name: 'Chemins',                 tags: 'track, path, footway, cycleway, bridleway, steps' },
+];
+const DEFAULT_SELECTION = ['autoroute', 'nationale', 'departementale'];
+const SEA = 255;            // value used in every layer for pixels outside France
+const UNIT_M = 100;         // one raster unit = 100 m
+
+const els = {
+  km: document.getElementById('km'),
+  kmValue: document.getElementById('km-value'),
+  cats: document.getElementById('cats'),
+  stat: document.getElementById('stat'),
+  statNote: document.getElementById('stat-note'),
+  status: document.getElementById('status'),
+  panel: document.getElementById('panel'),
+};
+
+// ---------- Map ----------
+const map = L.map('map', { zoomControl: false, minZoom: 5, maxZoom: 13 }).setView([46.6, 2.4], 6);
+L.control.zoom({ position: 'topright' }).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  className: 'base-tiles',
+  maxZoom: 19,
+}).addTo(map);
+
+// ImageOverlay that positions a <canvas> instead of an <img>.
+const CanvasOverlay = L.ImageOverlay.extend({
+  _initImage() {
+    const el = this._image = this._url;
+    L.DomUtil.addClass(el, 'leaflet-image-layer');
+    if (this._zoomAnimated) L.DomUtil.addClass(el, 'leaflet-zoom-animated');
+    if (this.options.className) L.DomUtil.addClass(el, this.options.className);
+    el.onselectstart = L.Util.falseFn;
+    el.onmousemove = L.Util.falseFn;
+  },
+});
+
+// ---------- State ----------
+let meta, canvas, ctx, imageData, out32, minDist, rowArea, totalLandArea;
+const layers = new Map();           // id -> Uint8Array of distances
+const selected = new Set(DEFAULT_SELECTION);
+
+function readHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  const km = parseInt(p.get('km'), 10);
+  if (km >= 1 && km <= 20) els.km.value = km;
+  if (p.has('routes')) {
+    selected.clear();
+    for (const id of p.get('routes').split(',')) if (CATEGORIES.some(c => c.id === id)) selected.add(id);
+  }
+}
+function writeHash() {
+  const routes = CATEGORIES.filter(c => selected.has(c.id)).map(c => c.id).join(',');
+  history.replaceState(null, '', `#km=${els.km.value}&routes=${routes}`);
+}
+
+function buildCategoryList() {
+  for (const c of CATEGORIES) {
+    const li = document.createElement('li');
+    li.innerHTML = `<label><input type="checkbox" value="${c.id}"><span class="name">${c.name}</span><span class="tags">${c.tags}</span></label>`;
+    const input = li.querySelector('input');
+    input.checked = selected.has(c.id);
+    input.addEventListener('change', () => {
+      input.checked ? selected.add(c.id) : selected.delete(c.id);
+      onSelectionChange();
+    });
+    els.cats.appendChild(li);
+  }
+  document.querySelectorAll('[data-preset]').forEach(btn => btn.addEventListener('click', () => {
+    selected.clear();
+    btn.dataset.preset.split(',').forEach(id => selected.add(id));
+    els.cats.querySelectorAll('input').forEach(i => { i.checked = selected.has(i.value); });
+    onSelectionChange();
+  }));
+}
+
+// ---------- Data ----------
+async function loadLayer(id) {
+  if (layers.has(id)) return layers.get(id);
+  const res = await fetch(`data/${id}.png`);
+  if (!res.ok) throw new Error(`data/${id}.png : ${res.status}`);
+  const bitmap = await createImageBitmap(await res.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+  const c = document.createElement('canvas');
+  c.width = bitmap.width; c.height = bitmap.height;
+  const cx = c.getContext('2d', { willReadFrequently: true });
+  cx.drawImage(bitmap, 0, 0);
+  const rgba = cx.getImageData(0, 0, c.width, c.height).data;
+  const arr = new Uint8Array(c.width * c.height);
+  for (let i = 0, j = 0; i < arr.length; i++, j += 4) arr[i] = rgba[j];
+  layers.set(id, arr);
+  return arr;
+}
+
+function computeAreas(sample) {
+  // Ground area of a pixel in km², per row: Web Mercator pixels shrink by cos(lat) in both directions.
+  const { width, height, extent } = meta;
+  const [xmin, ymin, xmax, ymax] = extent;
+  const px = (xmax - xmin) / width;
+  const R = 6378137;
+  rowArea = new Float64Array(height);
+  for (let y = 0; y < height; y++) {
+    const my = ymax - (y + 0.5) * px;
+    const lat = 2 * Math.atan(Math.exp(my / R)) - Math.PI / 2;
+    rowArea[y] = (px * Math.cos(lat)) ** 2 / 1e6;
+  }
+  totalLandArea = 0;
+  for (let y = 0, i = 0; y < height; y++) {
+    let n = 0;
+    for (let x = 0; x < width; x++, i++) if (sample[i] !== SEA) n++;
+    totalLandArea += n * rowArea[y];
+  }
+}
+
+// ---------- Rendering ----------
+let renderToken = 0;
+async function onSelectionChange() {
+  writeHash();
+  const token = ++renderToken;
+  const ids = CATEGORIES.filter(c => selected.has(c.id)).map(c => c.id);
+  const missing = ids.filter(id => !layers.has(id));
+  if (missing.length) els.status.textContent = 'Chargement des données…';
+  try {
+    await Promise.all(missing.map(loadLayer));
+  } catch (e) {
+    els.status.textContent = `Erreur de chargement (${e.message}).`;
+    return;
+  }
+  if (token !== renderToken) return;
+  els.status.textContent = '';
+  minDist = null;
+  if (ids.length) {
+    minDist = new Uint8Array(layers.get(ids[0]));
+    for (const id of ids.slice(1)) {
+      const arr = layers.get(id);
+      for (let i = 0; i < minDist.length; i++) if (arr[i] < minDist[i]) minDist[i] = arr[i];
+    }
+  }
+  render();
+}
+
+function accentRGBA() {
+  const c = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const n = parseInt(c.slice(1), 16);
+  const alpha = 190;
+  return (alpha << 24) | ((n & 0xff) << 16) | (((n >> 8) & 0xff) << 8) | ((n >> 16) & 0xff); // little-endian ABGR
+}
+
+function render() {
+  const km = +els.km.value;
+  els.kmValue.textContent = km;
+  if (!minDist) {
+    out32.fill(0);
+    ctx.putImageData(imageData, 0, 0);
+    els.stat.textContent = 'Aucun type de route choisi';
+    els.statNote.textContent = 'Cochez au moins une catégorie.';
+    return;
+  }
+  const threshold = km * 1000 / UNIT_M;
+  const color = accentRGBA();
+  const { width, height } = meta;
+  let area = 0;
+  for (let y = 0, i = 0; y < height; y++) {
+    let n = 0;
+    for (let x = 0; x < width; x++, i++) {
+      const d = minDist[i];
+      if (d >= threshold && d !== SEA) { out32[i] = color; n++; }
+      else out32[i] = 0;
+    }
+    area += n * rowArea[y];
+  }
+  ctx.putImageData(imageData, 0, 0);
+  const pct = 100 * area / totalLandArea;
+  const fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: pct < 1 ? 2 : 1 });
+  els.stat.textContent = `${Math.round(area).toLocaleString('fr-FR')} km² · ${fmt.format(pct)} %`;
+  els.statNote.textContent = `de la superficie métropolitaine à ${km} km ou plus d'une route`;
+}
+
+// ---------- Init ----------
+async function init() {
+  readHash();
+  buildCategoryList();
+  els.kmValue.textContent = els.km.value;
+  els.status.textContent = 'Chargement des données…';
+  meta = await (await fetch('data/meta.json')).json();
+  document.getElementById('osm-date').textContent = meta.osmDate;
+  document.getElementById('res').textContent = meta.groundResolutionM;
+
+  canvas = document.createElement('canvas');
+  canvas.width = meta.width; canvas.height = meta.height;
+  ctx = canvas.getContext('2d');
+  imageData = ctx.createImageData(meta.width, meta.height);
+  out32 = new Uint32Array(imageData.data.buffer);
+  const [s, w, n, e] = meta.boundsLatLng;
+  new CanvasOverlay(canvas, [[s, w], [n, e]], { className: 'far-layer', opacity: 1 }).addTo(map);
+
+  // Any layer marks the sea the same way; use the cheapest one for the land area.
+  computeAreas(await loadLayer('autoroute'));
+  els.km.addEventListener('input', () => { if (minDist !== undefined) { render(); writeHash(); } });
+  onSelectionChange();
+}
+
+document.getElementById('toggle').addEventListener('click', e => {
+  const collapsed = els.panel.classList.toggle('collapsed');
+  e.target.textContent = collapsed ? 'Options' : 'Réduire';
+});
+
+init().catch(e => { els.status.textContent = `Erreur : ${e.message}`; });
+</script>
+</body>
+</html>
