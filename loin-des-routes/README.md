@@ -5,11 +5,16 @@ selon les types de routes retenus.
 
 ## Fonctionnement
 
-Les distances sont précalculées hors ligne : pour chaque catégorie de route, `data/<catégorie>.png`
-est une image en niveaux de gris (projection Web Mercator, ~280 m au sol par pixel) dont chaque pixel
-vaut la distance à la route la plus proche de cette catégorie, en centaines de mètres (254 = 25,4 km
-ou plus, 255 = hors de France). La page charge les catégories cochées, prend le minimum pixel par
-pixel, puis colore les pixels au-delà du seuil du curseur.
+Les distances sont précalculées hors ligne : pour chaque catégorie de route, `data/<catégorie>.bin.gz`
+est une grille en projection Web Mercator (~280 m au sol par pixel, dimensions dans `meta.json`) dont
+chaque octet vaut la distance à la route la plus proche de cette catégorie, en centaines de mètres
+(254 = 25,4 km ou plus, 255 = hors de France). Chaque ligne y est stockée comme différence avec la
+ligne du dessus, puis le tout est compressé en gzip. La page décompresse les catégories cochées
+(`DecompressionStream`), prend le minimum pixel par pixel, puis colore les pixels au-delà du seuil.
+
+Les données ne sont volontairement pas des images PNG : relire les pixels d'une image dans un
+canevas n'est pas exact dans les navigateurs qui ajoutent du bruit contre le pistage par empreinte
+(Safari, Brave, Firefox). La mer, codée 255, était alors relue 254 et s'affichait en orange.
 
 ## Sources
 

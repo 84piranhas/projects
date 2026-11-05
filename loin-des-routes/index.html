@@ -266,18 +266,21 @@ function buildCategoryList() {
 // ---------- Data ----------
 async function loadLayer(id) {
   if (layers.has(id)) return layers.get(id);
-  const res = await fetch(`data/${id}.png`);
-  if (!res.ok) throw new Error(`data/${id}.png : ${res.status}`);
-  const bitmap = await createImageBitmap(await res.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
-  const c = document.createElement('canvas');
-  c.width = bitmap.width; c.height = bitmap.height;
-  const cx = c.getContext('2d', { willReadFrequently: true });
-  cx.drawImage(bitmap, 0, 0);
-  const rgba = cx.getImageData(0, 0, c.width, c.height).data;
-  const arr = new Uint8Array(c.width * c.height);
-  for (let i = 0, j = 0; i < arr.length; i++, j += 4) arr[i] = rgba[j];
-  layers.set(id, arr);
-  return arr;
+  // Raw bytes rather than an image: reading pixels back from a canvas is not exact in browsers
+  // that add noise against fingerprinting, and the sea (255) would then read as land.
+  const res = await fetch(`data/${id}.bin.gz`);
+  if (!res.ok) throw new Error(`data/${id}.bin.gz : ${res.status}`);
+  let buf = new Uint8Array(await res.arrayBuffer());
+  if (buf[0] === 0x1f && buf[1] === 0x8b) {   // not already decoded by the server's Content-Encoding
+    const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+    buf = new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  const { width } = meta;
+  if (buf.length !== width * meta.height) throw new Error(`data/${id}.bin.gz : taille inattendue`);
+  // Each row is stored as the difference from the row above.
+  for (let i = width; i < buf.length; i++) buf[i] += buf[i - width];
+  layers.set(id, buf);
+  return buf;
 }
 
 function computeAreas(sample) {

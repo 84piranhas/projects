@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds data/*.png and data/meta.json.
+# Builds data/*.bin.gz and data/meta.json.
 #
 #   ./build-data.sh WORK_DIR
 #
@@ -9,7 +9,7 @@
 # and departements.geojson (Etalab contours-administratifs, departements-100m).
 # Needs osmium-tool and gdal (brew install osmium-tool gdal).
 #
-# Each PNG is a grayscale raster in Web Mercator: value = distance to the nearest road of that
+# Each .bin.gz is a byte grid in Web Mercator: value = distance to the nearest road of that
 # category in units of 100 m (0..254, 254 meaning 25.4 km or more), and 255 outside France.
 set -euo pipefail
 
@@ -96,8 +96,19 @@ for cat in $CATS; do
     -ts $WIDTH 0 -r min -srcnodata None -dstnodata None -wo INIT_DEST=25400 -co COMPRESS=DEFLATE \
     "$cat-dist.tif" "$cat-wm.tif"
   gdal_rasterize -q -i -burn 25500 -l land land.gpkg "$cat-wm.tif"
-  gdal_translate -q -ot Byte -scale 0 25500 0 255 -of PNG -co ZLEVEL=9 "$cat-wm.tif" "$OUT/$cat.png"
-  rm -f "$OUT/$cat.png.aux.xml"
+  gdal_translate -q -ot Byte -scale 0 25500 0 255 -co COMPRESS=DEFLATE "$cat-wm.tif" "$cat-byte.tif"
+  # Raw bytes, each row stored as the difference from the row above, then gzipped. The page reads
+  # them directly: decoding a PNG through a canvas is not exact in browsers that add noise to
+  # canvas readback against fingerprinting (Safari, Brave, Firefox), which turned the sea orange.
+  /opt/homebrew/bin/python3 -I -W ignore -c "
+import gzip, sys
+import numpy as np
+from osgeo import gdal
+a = gdal.Open(sys.argv[1]).ReadAsArray().astype(np.uint8)
+d = a.copy()
+d[1:] = a[1:] - a[:-1]
+open(sys.argv[2], 'wb').write(gzip.compress(d.tobytes(), 9, mtime=0))
+" "$cat-byte.tif" "$OUT/$cat.bin.gz"
 done
 
 OSM_DATE=$(osmium fileinfo -g header.option.osmosis_replication_timestamp france.osm.pbf | cut -c1-10)
