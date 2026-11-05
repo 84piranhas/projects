@@ -49,6 +49,8 @@
   #map { position: absolute; inset: 0; background: var(--bg); }
   .far-layer { image-rendering: pixelated; }
   .base-tiles { filter: grayscale(0.85) contrast(0.9) brightness(1.05); }
+  /* Darker base map when zones are coloured by road, so the white communal zones stay visible. */
+  body.by-road .base-tiles { filter: grayscale(1) brightness(0.7) contrast(0.95); }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .base-tiles { filter: grayscale(1) invert(1) brightness(0.85) contrast(0.9); }
   }
@@ -93,7 +95,13 @@
   }
   .cats label:hover { background: var(--accent-soft); }
   .cats input { margin: 2px 0 0; accent-color: var(--accent); }
-  .cats .name { font-weight: 500; }
+  .cats .name { font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .cats .dot {
+    display: none; width: 11px; height: 11px; border-radius: 3px; flex: none;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  }
+  .cats .pct { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  body.by-road .cats .dot { display: inline-block; }
   .cats .tags { grid-column: 2; color: var(--muted); font-size: 11.5px; }
   .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .presets button {
@@ -103,8 +111,13 @@
   }
   .presets button:hover { border-color: var(--accent); color: var(--accent); }
 
+  .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+  .switch-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); flex: none; }
+  .hint { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
   .stat { display: flex; align-items: center; gap: 10px; }
   .swatch { width: 16px; height: 16px; border-radius: 4px; background: var(--accent); opacity: 0.75; flex: none; }
+  body.by-road .stat .swatch { background: transparent; border: 1.5px dashed var(--muted); opacity: 1; }
   .stat-value { font-weight: 700; font-variant-numeric: tabular-nums; }
   .stat-note { color: var(--muted); font-size: 12px; }
   .status { color: var(--muted); font-size: 12px; min-height: 1em; margin-top: 6px; }
@@ -148,6 +161,16 @@
     <div class="ticks"><span>1 km</span><span>10 km</span><span>20 km</span></div>
   </div>
 
+  <div class="section">
+    <label class="switch-row">
+      <span>
+        <span class="label">Couleur uniforme</span>
+        <span class="hint" id="mode-hint"></span>
+      </span>
+      <input id="uniform" type="checkbox" role="switch" checked>
+    </label>
+  </div>
+
   <div class="section collapsible">
     <div class="label" style="margin-bottom:4px">Ce qui compte comme une route</div>
     <ul class="cats" id="cats"></ul>
@@ -181,13 +204,14 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+// In order of importance: when zones are coloured by road, the first category within reach wins.
 const CATEGORIES = [
-  { id: 'autoroute',      name: 'Autoroutes',              tags: 'BD TOPO (IGN), avec bretelles' },
-  { id: 'nationale',      name: 'Routes nationales',       tags: 'BD TOPO (IGN), dont T… en Corse' },
-  { id: 'departementale', name: 'Routes départementales',  tags: 'BD TOPO (IGN)' },
-  { id: 'communale',      name: 'Routes communales',       tags: 'OSM : unclassified, road et autres routes hors réseau A/N/D' },
-  { id: 'rue',            name: 'Rues',                    tags: 'OSM : residential, living_street, pedestrian, service' },
-  { id: 'chemin',         name: 'Chemins',                 tags: 'OSM : track, path, footway, cycleway, bridleway, steps' },
+  { id: 'autoroute',      name: 'Autoroutes',              color: '#2f6fe0', tags: 'BD TOPO (IGN), avec bretelles' },
+  { id: 'nationale',      name: 'Routes nationales',       color: '#2e9d4e', tags: 'BD TOPO (IGN), dont T… en Corse' },
+  { id: 'departementale', name: 'Routes départementales',  color: '#f2c12e', tags: 'BD TOPO (IGN)' },
+  { id: 'communale',      name: 'Routes communales',       color: '#ffffff', tags: 'OSM : unclassified, road et autres routes hors réseau A/N/D' },
+  { id: 'rue',            name: 'Rues',                    color: '#9b9b9b', tags: 'OSM : residential, living_street, pedestrian, service' },
+  { id: 'chemin',         name: 'Chemins',                 color: '#8a5a2b', tags: 'OSM : track, path, footway, cycleway, bridleway, steps' },
 ];
 const DEFAULT_SELECTION = ['autoroute', 'nationale', 'departementale'];
 const SEA = 255;            // value used in every layer for pixels outside France
@@ -201,6 +225,8 @@ const els = {
   statNote: document.getElementById('stat-note'),
   status: document.getElementById('status'),
   panel: document.getElementById('panel'),
+  uniform: document.getElementById('uniform'),
+  modeHint: document.getElementById('mode-hint'),
 };
 
 // ---------- Map ----------
@@ -233,6 +259,7 @@ function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   const km = parseInt(p.get('km'), 10);
   if (km >= 1 && km <= 20) els.km.value = km;
+  els.uniform.checked = p.get('couleur') !== 'routes';
   if (p.has('routes')) {
     selected.clear();
     for (const id of p.get('routes').split(',')) if (CATEGORIES.some(c => c.id === id)) selected.add(id);
@@ -240,13 +267,14 @@ function readHash() {
 }
 function writeHash() {
   const routes = CATEGORIES.filter(c => selected.has(c.id)).map(c => c.id).join(',');
-  history.replaceState(null, '', `#km=${els.km.value}&routes=${routes}`);
+  const mode = els.uniform.checked ? '' : '&couleur=routes';
+  history.replaceState(null, '', `#km=${els.km.value}&routes=${routes}${mode}`);
 }
 
 function buildCategoryList() {
   for (const c of CATEGORIES) {
     const li = document.createElement('li');
-    li.innerHTML = `<label><input type="checkbox" value="${c.id}"><span class="name">${c.name}</span><span class="tags">${c.tags}</span></label>`;
+    li.innerHTML = `<label><input type="checkbox" value="${c.id}"><span class="name"><span class="dot" style="background:${c.color}"></span>${c.name}<span class="pct" data-pct="${c.id}"></span></span><span class="tags">${c.tags}</span></label>`;
     const input = li.querySelector('input');
     input.checked = selected.has(c.id);
     input.addEventListener('change', () => {
@@ -330,16 +358,20 @@ async function onSelectionChange() {
   render();
 }
 
-function accentRGBA() {
-  const c = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-  const n = parseInt(c.slice(1), 16);
-  const alpha = 190;
-  return (alpha << 24) | ((n & 0xff) << 16) | (((n >> 8) & 0xff) << 8) | ((n >> 16) & 0xff); // little-endian ABGR
+function rgba(hex, alpha) {
+  const n = parseInt(hex.trim().slice(1), 16);
+  return ((alpha << 24) | ((n & 0xff) << 16) | (((n >> 8) & 0xff) << 8) | ((n >> 16) & 0xff)) >>> 0; // little-endian ABGR
 }
 
 function render() {
   const km = +els.km.value;
+  const uniform = els.uniform.checked;
   els.kmValue.textContent = km;
+  document.body.classList.toggle('by-road', !uniform);
+  els.modeHint.textContent = uniform
+    ? 'Orange : zones loin de toute route.'
+    : `Couleur de la route la plus importante à moins de ${km} km ; zones loin des routes sans couleur.`;
+  els.cats.querySelectorAll('[data-pct]').forEach(el => { el.textContent = ''; });
   if (!minDist) {
     out32.fill(0);
     ctx.putImageData(imageData, 0, 0);
@@ -348,7 +380,20 @@ function render() {
     return;
   }
   const threshold = km * 1000 / UNIT_M;
-  const color = accentRGBA();
+  const area = uniform ? renderUniform(threshold) : renderByRoad(threshold);
+  ctx.putImageData(imageData, 0, 0);
+  els.stat.textContent = `${Math.round(area).toLocaleString('fr-FR')} km² · ${formatPct(area)} %`;
+  els.statNote.textContent = `de la superficie métropolitaine à ${km} km ou plus d'une route${uniform ? '' : ' (sans couleur)'}`;
+}
+
+function formatPct(area) {
+  const pct = 100 * area / totalLandArea;
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: pct < 1 ? 2 : 1 }).format(pct);
+}
+
+// Orange where every selected road is at least `threshold` away. Returns that area in km².
+function renderUniform(threshold) {
+  const color = rgba(getComputedStyle(document.documentElement).getPropertyValue('--accent'), 190);
   const { width, height } = meta;
   let area = 0;
   for (let y = 0, i = 0; y < height; y++) {
@@ -360,11 +405,33 @@ function render() {
     }
     area += n * rowArea[y];
   }
-  ctx.putImageData(imageData, 0, 0);
-  const pct = 100 * area / totalLandArea;
-  const fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: pct < 1 ? 2 : 1 });
-  els.stat.textContent = `${Math.round(area).toLocaleString('fr-FR')} km² · ${fmt.format(pct)} %`;
-  els.statNote.textContent = `de la superficie métropolitaine à ${km} km ou plus d'une route`;
+  return area;
+}
+
+// Each pixel takes the colour of the most important selected road within `threshold`; pixels
+// with none stay clear. Shows each category's share and returns the uncoloured area in km².
+function renderByRoad(threshold) {
+  const cats = CATEGORIES.filter(c => selected.has(c.id));
+  const arrs = cats.map(c => layers.get(c.id));
+  const colors = cats.map(c => rgba(c.color, 175));
+  const areas = new Float64Array(cats.length);
+  const K = cats.length, first = arrs[0];
+  const { width, height } = meta;
+  let far = 0;
+  for (let y = 0, i = 0; y < height; y++) {
+    const a = rowArea[y];
+    for (let x = 0; x < width; x++, i++) {
+      if (first[i] === SEA) { out32[i] = 0; continue; }
+      let k = 0;
+      while (k < K && arrs[k][i] >= threshold) k++;
+      if (k < K) { out32[i] = colors[k]; areas[k] += a; }
+      else { out32[i] = 0; far += a; }
+    }
+  }
+  cats.forEach((c, k) => {
+    els.cats.querySelector(`[data-pct="${c.id}"]`).textContent = `${formatPct(areas[k])} %`;
+  });
+  return far;
 }
 
 // ---------- Init ----------
@@ -389,6 +456,7 @@ async function init() {
   // Any layer marks the sea the same way; use the cheapest one for the land area.
   computeAreas(await loadLayer('autoroute'));
   els.km.addEventListener('input', () => { if (minDist !== undefined) { render(); writeHash(); } });
+  els.uniform.addEventListener('change', () => { if (minDist !== undefined) { render(); writeHash(); } });
   onSelectionChange();
 }
 

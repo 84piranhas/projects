@@ -3,6 +3,11 @@
 Carte interactive des zones de France métropolitaine situées à plus de X km (1 à 20) d'une route,
 selon les types de routes retenus.
 
+Option « Couleur uniforme » : cochée (par défaut), les zones loin de toute route sont en orange.
+Décochée, la coloration s'inverse : chaque zone prend la couleur de la route la plus importante à
+moins de X km (autoroute bleu, nationale vert, départementale jaune, communale blanc, rue gris,
+chemin marron) et les zones loin des routes restent sans couleur.
+
 ## Fonctionnement
 
 Les distances sont précalculées hors ligne : pour chaque catégorie de route, `data/<catégorie>.bin.gz`
