@@ -81,7 +81,12 @@
   .label { font-weight: 600; font-size: 13px; }
   .km { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 20px; color: var(--accent); }
   input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
-  .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+  .ticks { position: relative; height: 16px; color: var(--muted); font-size: 11px; }
+  .ticks span { position: absolute; top: 0; white-space: nowrap; }
+  .ticks span:first-child { left: 0; }
+  .ticks span:last-child { right: 0; }
+  /* Under the thumb centre for 5 km, the 10th of 25 positions (thumb about 16 px wide). */
+  .ticks .mid { left: calc(8px + 0.375 * (100% - 16px)); transform: translateX(-50%); }
 
   .cats { list-style: none; margin: 0; padding: 0; }
   .cats li { margin: 2px 0; }
@@ -157,8 +162,8 @@
       <span class="label">Distance minimale</span>
       <span class="km"><span id="km-value">5</span> km</span>
     </div>
-    <input id="km" type="range" min="0.5" max="20" step="0.5" value="5" aria-label="Distance minimale en kilomètres">
-    <div class="ticks"><span>0,5 km</span><span>10 km</span><span>20 km</span></div>
+    <input id="km" type="range" min="0" max="24" step="1" value="9" aria-label="Distance minimale en kilomètres">
+    <div class="ticks"><span>0,5 km</span><span class="mid">5 km</span><span>20 km</span></div>
   </div>
 
   <div class="section">
@@ -214,6 +219,8 @@ const CATEGORIES = [
   { id: 'chemin',         name: 'Chemins',                 color: '#8a5a2b', tags: 'OSM : track, path, footway, cycleway, bridleway, steps' },
 ];
 const DEFAULT_SELECTION = ['autoroute', 'nationale', 'departementale'];
+// Slider positions: 0.5 km steps up to 5 km, then 1 km steps up to 20 km.
+const KM_STEPS = [...Array.from({ length: 10 }, (_, i) => (i + 1) / 2), ...Array.from({ length: 15 }, (_, i) => i + 6)];
 const SEA = 255;            // value used in every layer for pixels outside France
 const UNIT_M = 100;         // one raster unit = 100 m
 
@@ -258,7 +265,10 @@ const selected = new Set(DEFAULT_SELECTION);
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   const km = parseFloat(p.get('km'));
-  if (km >= 0.5 && km <= 20) els.km.value = Math.round(km * 2) / 2;
+  if (km >= 0.5 && km <= 20) {   // nearest slider position
+    const diffs = KM_STEPS.map(k => Math.abs(k - km));
+    els.km.value = diffs.indexOf(Math.min(...diffs));
+  }
   els.uniform.checked = p.get('couleur') !== 'routes';
   if (p.has('routes')) {
     selected.clear();
@@ -268,7 +278,10 @@ function readHash() {
 function writeHash() {
   const routes = CATEGORIES.filter(c => selected.has(c.id)).map(c => c.id).join(',');
   const mode = els.uniform.checked ? '' : '&couleur=routes';
-  history.replaceState(null, '', `#km=${els.km.value}&routes=${routes}${mode}`);
+  history.replaceState(null, '', `#km=${currentKm()}&routes=${routes}${mode}`);
+}
+function currentKm() {
+  return KM_STEPS[+els.km.value];
 }
 
 function buildCategoryList() {
@@ -396,7 +409,7 @@ function rgba(hex, alpha) {
 }
 
 function render() {
-  const km = +els.km.value;
+  const km = currentKm();
   const uniform = els.uniform.checked;
   const kmText = km.toLocaleString('fr-FR');
   els.kmValue.textContent = kmText;
@@ -471,7 +484,7 @@ function renderByRoad(threshold) {
 async function init() {
   readHash();
   buildCategoryList();
-  els.kmValue.textContent = (+els.km.value).toLocaleString('fr-FR');
+  els.kmValue.textContent = currentKm().toLocaleString('fr-FR');
   els.status.textContent = 'Chargement des données…';
   meta = await (await fetch('data/meta.json')).json();
   document.getElementById('osm-date').textContent = meta.osmDate;

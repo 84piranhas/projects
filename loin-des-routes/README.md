@@ -1,6 +1,6 @@
 # Loin des routes
 
-Carte interactive des zones de France métropolitaine situées à plus de X km (0,5 à 20, par pas de 0,5) d'une route,
+Carte interactive des zones de France métropolitaine situées à plus de X km (0,5 à 20 : par pas de 0,5 jusqu'à 5 km, puis de 1 km) d'une route,
 selon les types de routes retenus.
 
 Option « Couleur uniforme » : cochée (par défaut), les zones loin de toute route sont en orange.
