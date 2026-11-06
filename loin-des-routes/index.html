@@ -157,8 +157,8 @@
       <span class="label">Distance minimale</span>
       <span class="km"><span id="km-value">5</span> km</span>
     </div>
-    <input id="km" type="range" min="1" max="20" step="1" value="5" aria-label="Distance minimale en kilomètres">
-    <div class="ticks"><span>1 km</span><span>10 km</span><span>20 km</span></div>
+    <input id="km" type="range" min="0.5" max="20" step="0.5" value="5" aria-label="Distance minimale en kilomètres">
+    <div class="ticks"><span>0,5 km</span><span>10 km</span><span>20 km</span></div>
   </div>
 
   <div class="section">
@@ -257,8 +257,8 @@ const selected = new Set(DEFAULT_SELECTION);
 
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  const km = parseInt(p.get('km'), 10);
-  if (km >= 1 && km <= 20) els.km.value = km;
+  const km = parseFloat(p.get('km'));
+  if (km >= 0.5 && km <= 20) els.km.value = Math.round(km * 2) / 2;
   els.uniform.checked = p.get('couleur') !== 'routes';
   if (p.has('routes')) {
     selected.clear();
@@ -398,11 +398,12 @@ function rgba(hex, alpha) {
 function render() {
   const km = +els.km.value;
   const uniform = els.uniform.checked;
-  els.kmValue.textContent = km;
+  const kmText = km.toLocaleString('fr-FR');
+  els.kmValue.textContent = kmText;
   document.body.classList.toggle('by-road', !uniform);
   els.modeHint.textContent = uniform
     ? 'Orange : zones loin de toute route.'
-    : `Couleur de la route la plus importante à moins de ${km} km ; zones loin des routes sans couleur.`;
+    : `Couleur de la route la plus importante à moins de ${kmText} km ; zones loin des routes sans couleur.`;
   els.cats.querySelectorAll('[data-pct]').forEach(el => { el.textContent = ''; });
   if (!minDist) {
     out32.fill(0);
@@ -415,7 +416,7 @@ function render() {
   const area = uniform ? renderUniform(threshold) : renderByRoad(threshold);
   ctx.putImageData(imageData, 0, 0);
   els.stat.textContent = `${Math.round(area).toLocaleString('fr-FR')} km² · ${formatPct(area)} %`;
-  els.statNote.textContent = `de la superficie métropolitaine à ${km} km ou plus d'une route${uniform ? '' : ' (sans couleur)'}`;
+  els.statNote.textContent = `de la superficie métropolitaine à ${kmText} km ou plus d'une route${uniform ? '' : ' (sans couleur)'}`;
 }
 
 function formatPct(area) {
@@ -470,7 +471,7 @@ function renderByRoad(threshold) {
 async function init() {
   readHash();
   buildCategoryList();
-  els.kmValue.textContent = els.km.value;
+  els.kmValue.textContent = (+els.km.value).toLocaleString('fr-FR');
   els.status.textContent = 'Chargement des données…';
   meta = await (await fetch('data/meta.json')).json();
   document.getElementById('osm-date').textContent = meta.osmDate;

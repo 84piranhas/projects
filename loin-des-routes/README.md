@@ -1,6 +1,6 @@
 # Loin des routes
 
-Carte interactive des zones de France métropolitaine situées à plus de X km (1 à 20) d'une route,
+Carte interactive des zones de France métropolitaine situées à plus de X km (0,5 à 20, par pas de 0,5) d'une route,
 selon les types de routes retenus.
 
 Option « Couleur uniforme » : cochée (par défaut), les zones loin de toute route sont en orange.
@@ -41,6 +41,14 @@ canevas n'est pas exact dans les navigateurs qui ajoutent du bruit contre le pis
 Le classement administratif de la BD TOPO peut être composite (« Autoroute/Route nommée »,
 « Départementale/Route nommée »…) : il est filtré par motif, pas par égalité. Les bacs et les
 tronçons fictifs sont exclus.
+
+## Précision
+
+Les distances sont calculées sur une grille de 100 m (Lambert-93), puis chaque pixel affiché
+(260 m au sol à Dunkerque, 280 m au centre, 310 m dans le sud de la Corse) prend la plus petite
+distance qu'il contient : un pixel n'est marqué « loin » que si son point le plus proche d'une route
+l'est. L'incertitude est d'environ ±100 m (position des routes sur la grille, arrondi à la centaine
+de mètres), soit ±20 % à 500 m. C'est pourquoi le curseur commence à 0,5 km.
 
 ## Fiabilité (contrôles de novembre 2026)
 
