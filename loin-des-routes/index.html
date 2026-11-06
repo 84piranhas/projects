@@ -292,23 +292,55 @@ function buildCategoryList() {
 }
 
 // ---------- Data ----------
+// Raw bytes rather than an image: reading pixels back from a canvas is not exact in browsers
+// that add noise against fingerprinting, and the sea (255) would then read as land.
+// Each layer exists as gzip (.bin.gz, smallest) and as the same gzip in base64 text (.b64.txt),
+// for corporate proxies that refuse .gz downloads or replace them with a block page. Once the
+// text copy has worked, the remaining layers go straight to it.
+const FORMATS = [
+  { ext: 'bin.gz', read: async res => new Uint8Array(await res.arrayBuffer()) },
+  { ext: 'b64.txt', read: async res => base64ToBytes(await res.text()) },
+];
+let preferredFormat = 0;
+
 async function loadLayer(id) {
   if (layers.has(id)) return layers.get(id);
-  // Raw bytes rather than an image: reading pixels back from a canvas is not exact in browsers
-  // that add noise against fingerprinting, and the sea (255) would then read as land.
-  const res = await fetch(`data/${id}.bin.gz`);
-  if (!res.ok) throw new Error(`data/${id}.bin.gz : ${res.status}`);
-  let buf = new Uint8Array(await res.arrayBuffer());
+  let lastError;
+  for (let f = preferredFormat; f < FORMATS.length; f++) {
+    try {
+      const buf = await fetchLayer(id, FORMATS[f]);
+      preferredFormat = f;
+      layers.set(id, buf);
+      return buf;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError;
+}
+
+async function fetchLayer(id, format) {
+  const url = `data/${id}.${format.ext}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} : ${res.status}`);
+  let buf = await format.read(res);
   if (buf[0] === 0x1f && buf[1] === 0x8b) {   // not already decoded by the server's Content-Encoding
     const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
     buf = new Uint8Array(await new Response(stream).arrayBuffer());
   }
   const { width } = meta;
-  if (buf.length !== width * meta.height) throw new Error(`data/${id}.bin.gz : taille inattendue`);
+  if (buf.length !== width * meta.height) throw new Error(`${url} : contenu inattendu`);
   // Each row is stored as the difference from the row above.
   for (let i = width; i < buf.length; i++) buf[i] += buf[i - width];
-  layers.set(id, buf);
   return buf;
+}
+
+function base64ToBytes(text) {
+  if (Uint8Array.fromBase64) return Uint8Array.fromBase64(text.trim());
+  const bin = atob(text.trim());
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
 }
 
 function computeAreas(sample) {
@@ -342,7 +374,7 @@ async function onSelectionChange() {
   try {
     await Promise.all(missing.map(loadLayer));
   } catch (e) {
-    els.status.textContent = `Erreur de chargement (${e.message}).`;
+    els.status.textContent = loadErrorMessage(e);
     return;
   }
   if (token !== renderToken) return;
@@ -465,7 +497,11 @@ document.getElementById('toggle').addEventListener('click', e => {
   e.target.textContent = collapsed ? 'Options' : 'Réduire';
 });
 
-init().catch(e => { els.status.textContent = `Erreur : ${e.message}`; });
+function loadErrorMessage(e) {
+  return `Les données n'ont pas pu être téléchargées, ni en .bin.gz ni en texte : un pare-feu ou un proxy les bloque peut-être. (${e.message})`;
+}
+
+init().catch(e => { els.status.textContent = loadErrorMessage(e); });
 </script>
 </body>
 </html>

@@ -17,6 +17,12 @@ chaque octet vaut la distance à la route la plus proche de cette catégorie, en
 ligne du dessus, puis le tout est compressé en gzip. La page décompresse les catégories cochées
 (`DecompressionStream`), prend le minimum pixel par pixel, puis colore les pixels au-delà du seuil.
 
+Chaque fichier existe aussi en `data/<catégorie>.b64.txt` : le même contenu gzip, encodé en base64.
+La page charge d'abord le `.bin.gz`, le plus léger. Si la requête échoue (refus d'un proxy
+d'entreprise, page de blocage à la place du fichier, connexion coupée) ou si le contenu reçu n'a pas
+la bonne taille, elle bascule sur la copie texte, puis l'utilise directement pour les autres couches.
+Le texte pèse un tiers de plus, mais à peu près autant une fois compressé à la volée par le serveur.
+
 Les données ne sont volontairement pas des images PNG : relire les pixels d'une image dans un
 canevas n'est pas exact dans les navigateurs qui ajoutent du bruit contre le pistage par empreinte
 (Safari, Brave, Firefox). La mer, codée 255, était alors relue 254 et s'affichait en orange.

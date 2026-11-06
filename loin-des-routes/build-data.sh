@@ -109,6 +109,11 @@ d = a.copy()
 d[1:] = a[1:] - a[:-1]
 open(sys.argv[2], 'wb').write(gzip.compress(d.tobytes(), 9, mtime=0))
 " "$cat-byte.tif" "$OUT/$cat.bin.gz"
+  # Same bytes as base64 text, for networks whose proxy refuses .gz downloads.
+  /opt/homebrew/bin/python3 -I -c "
+import base64, sys
+open(sys.argv[2], 'wb').write(base64.b64encode(open(sys.argv[1], 'rb').read()))
+" "$OUT/$cat.bin.gz" "$OUT/$cat.b64.txt"
 done
 
 OSM_DATE=$(osmium fileinfo -g header.option.osmosis_replication_timestamp france.osm.pbf | cut -c1-10)
