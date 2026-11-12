@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Planning du mois</title>
+<style>
+  :root {
+    --bg: #f7f5f0; --surface: #ffffff; --dim: #ebe7de; --text: #1d1b18; --muted: #6b665d;
+    --border: #e4e0d6; --accent: #c4552d; --accent-text: #ffffff;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+    --plaisant: #2f8f5b; --facile: #3b78c4; --moyen: #b97d12; --penible: #c4403a;
+    --good: #2f8f5b; --mid: #b97d12; --bad: #c4403a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141311; --surface: #211f1c; --dim: #151412; --text: #ece8df; --muted: #a29d92;
+      --border: #2f2d29; --accent: #e87a52; --accent-text: #1a0d07;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
+      --plaisant: #4fb980; --facile: #6aa3e8; --moyen: #dba53a; --penible: #e8695f;
+      --good: #4fb980; --mid: #dba53a; --bad: #e8695f;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer;
+  }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button.ghost { border-color: transparent; background: none; padding: 4px 8px; }
+  button.danger { color: var(--bad); }
+  button:disabled { opacity: .4; cursor: default; }
+  input[type=text], input[type=password], input[type=number], input[type=date], input[type=time], select {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; min-width: 0;
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* ---------- verrou ---------- */
+  #lock { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  #lock form {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
+    padding: 28px; width: min(360px, 100%); display: grid; gap: 12px;
+  }
+  #lock h1 { font-size: 22px; margin: 0; }
+  #lock p { margin: 0; color: var(--muted); font-size: 14px; }
+  #lock .err { color: var(--bad); min-height: 1.2em; }
+  #lock .reset { font-size: 13px; text-align: center; }
+  #lock .reset button { color: var(--muted); text-decoration: underline; }
+
+  /* ---------- structure ---------- */
+  .app { max-width: 1320px; margin: 0 auto; padding: 20px 16px 48px; }
+  .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .top h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+  .top .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .top .sp { flex: 1; }
+  .layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } .side { order: 2; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+  .side { display: grid; gap: 16px; }
+  .side .card { padding: 14px; }
+  .side h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+
+  /* ---------- barre d'outils ---------- */
+  .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: none; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+  .bar .label { font-weight: 600; margin: 0 4px; }
+  .bar .label::first-letter { text-transform: uppercase; }
+  .bar .sp { flex: 1; }
+  .score {
+    display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 12px; border-radius: 99px;
+    border: 1px solid var(--sc); color: var(--sc); font-weight: 600; cursor: help;
+    background: color-mix(in srgb, var(--sc) 10%, transparent);
+  }
+  .score b { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .s-good { --sc: var(--good); } .s-mid { --sc: var(--mid); } .s-bad { --sc: var(--bad); }
+  .dot { display: inline-block; min-width: 26px; text-align: center; font-size: 11px; font-weight: 700; padding: 0 5px;
+    border-radius: 99px; color: var(--sc); background: color-mix(in srgb, var(--sc) 14%, transparent); font-variant-numeric: tabular-nums; }
+
+  .banner { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 12px;
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-bottom: 1px solid var(--border); }
+  .banner .sp { flex: 1; }
+
+  /* ---------- pénibilité ---------- */
+  .p-plaisant { --pc: var(--plaisant); } .p-facile { --pc: var(--facile); }
+  .p-moyen { --pc: var(--moyen); } .p-penible { --pc: var(--penible); }
+  .pill { font-size: 11px; font-weight: 600; color: var(--pc); border: 1px solid var(--pc); border-radius: 99px; padding: 0 7px; white-space: nowrap; }
+
+  /* ---------- grille horaire (jour / semaine) ---------- */
+  .tg-scroll { overflow: auto; max-height: calc(100vh - 190px); min-height: 360px; }
+  .tg { min-width: calc(48px + var(--n) * var(--minw)); }
+  .tg-head, .tg-body { display: grid; grid-template-columns: 48px repeat(var(--n), minmax(0, 1fr)); }
+  .tg-head { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .tg-head .dh { padding: 6px 4px; text-align: center; border-left: 1px solid var(--border); font-size: 13px; }
+  .tg-head .dh button { border: 0; background: none; padding: 0 4px; font-weight: 600; text-transform: capitalize; }
+  .tg-head .dh.today button { color: var(--accent); }
+  .tg-head .dh.out { opacity: .4; }
+  .gut { position: relative; }
+  .gut span { position: absolute; right: 6px; transform: translateY(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .col { position: relative; border-left: 1px solid var(--border); background: var(--dim); }
+  .col.out { background: repeating-linear-gradient(135deg, var(--dim) 0 6px, var(--bg) 6px 12px); }
+  .col .avail { position: absolute; left: 0; right: 0; background: var(--surface); }
+  .col .lines { position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px var(--hh)); opacity: .7; }
+  .col .now { position: absolute; left: 0; right: 0; height: 2px; background: var(--accent); z-index: 3; pointer-events: none; }
+  .blk {
+    position: absolute; z-index: 2; overflow: hidden; border-radius: 6px; padding: 1px 5px; font-size: 12px; line-height: 1.25;
+    background: color-mix(in srgb, var(--pc) 18%, var(--surface)); border: 1px solid color-mix(in srgb, var(--pc) 45%, var(--surface));
+    border-left: 4px solid var(--pc); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+    display: flex; gap: 5px; align-items: flex-start;
+  }
+  .blk input { margin: 1px 0 0; width: 13px; height: 13px; flex: none; cursor: pointer; accent-color: var(--pc); }
+  .blk .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .blk .tm { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .blk .tx { min-width: 0; }
+  .blk.done { opacity: .55; } .blk.done .nm { text-decoration: line-through; }
+  .blk.prop, .chip.prop { border-style: dashed; border-left-style: solid; border-color: var(--pc); }
+  .blk.drag { z-index: 10; cursor: grabbing; box-shadow: var(--shadow); opacity: .9; }
+
+  /* ---------- vue mois ---------- */
+  .mg { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .mg .wdh { padding: 6px; text-align: center; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: capitalize; }
+  .cell { min-height: 104px; padding: 4px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 3px; }
+  .cell:nth-child(7n) { border-right: 0; }
+  .cell.blank { background: var(--dim); }
+  .cell.past { background: color-mix(in srgb, var(--dim) 60%, var(--surface)); }
+  .cell.over { outline: 2px dashed var(--accent); outline-offset: -3px; }
+  .cell .hd { display: flex; justify-content: space-between; align-items: center; }
+  .cell .hd button { border: 0; background: none; padding: 0 5px; font-weight: 600; border-radius: 99px; }
+  .cell.today .hd button { background: var(--accent); color: var(--accent-text); }
+  .chip {
+    display: flex; align-items: center; gap: 4px; font-size: 12px; padding: 1px 4px; border-radius: 5px; cursor: pointer;
+    background: color-mix(in srgb, var(--pc) 16%, var(--surface)); border: 1px solid transparent; border-left: 3px solid var(--pc); min-width: 0;
+  }
+  .chip input { margin: 0; width: 12px; height: 12px; flex: none; accent-color: var(--pc); }
+  .chip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip.done { opacity: .55; } .chip.done span { text-decoration: line-through; }
+  @media (max-width: 640px) { .cell { min-height: 76px; padding: 2px; } .chip { font-size: 10.5px; padding: 0 2px; } .chip input { display: none; } .cell .dot { display: none; } }
+
+  /* ---------- colonne latérale ---------- */
+  .stat { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; }
+  .stat b { font-variant-numeric: tabular-nums; }
+  .prog { height: 8px; border-radius: 99px; background: var(--dim); overflow: hidden; margin: 8px 0; }
+  .prog i { display: block; height: 100%; background: var(--good); border-radius: 99px; }
+  .late { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--bad); }
+  .acts { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .task { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; padding: 9px 0 9px 10px; border-top: 1px solid var(--border); border-left: 4px solid var(--pc); margin-left: -2px; }
+  .task .nm { font-weight: 600; }
+  .task .meta { grid-column: 1; color: var(--muted); font-size: 12.5px; }
+  .task .btns { grid-row: 1 / span 3; grid-column: 2; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+  .task .btns button { font-size: 12.5px; padding: 3px 9px; }
+  .empty { color: var(--muted); font-size: 14px; margin: 6px 0 12px; }
+  .legend { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  /* ---------- dialogues ---------- */
+  dialog { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); padding: 0; width: min(440px, calc(100vw - 24px)); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  dialog form { padding: 20px; display: grid; gap: 12px; }
+  dialog h3 { margin: 0; font-size: 18px; }
+  dialog label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  dialog label.chk { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 15px; }
+  dialog .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  dialog .foot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+  dialog .foot .sp { flex: 1; }
+  dialog .hint { font-size: 13px; color: var(--muted); margin: 0; }
+  .pens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .pens label { display: block; text-align: center; border: 1px solid var(--border); border-radius: 8px; padding: 6px 2px; cursor: pointer; color: var(--text); font-size: 13px; }
+  .pens input { position: absolute; opacity: 0; }
+  .pens label:has(input:checked) { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 16%, var(--surface)); font-weight: 600; }
+  .pens label:has(input:focus-visible) { outline: 2px solid var(--accent); }
+  .av { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px 10px; align-items: center; }
+  .av label { display: flex; gap: 6px; align-items: center; color: var(--text); font-size: 14px; text-transform: capitalize; }
+
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg);
+    padding: 9px 16px; border-radius: 99px; font-size: 14px; box-shadow: var(--shadow); z-index: 100; max-width: calc(100vw - 32px); }
+</style>
+</head>
+<body>
+
+<!-- ===== Verrou ===== -->
+<div id="lock">
+  <form id="lockForm" autocomplete="off">
+    <h1>Planning du mois</h1>
+    <p id="lockMsg"></p>
+    <input type="password" id="pw1" placeholder="Mot de passe" autocomplete="current-password" required>
+    <input type="password" id="pw2" placeholder="Confirmer le mot de passe" autocomplete="new-password" hidden>
+    <div class="err" id="lockErr" role="alert"></div>
+    <button class="primary" type="submit" id="lockBtn">Ouvrir</button>
+    <div class="reset" id="lockReset" hidden><button type="button" class="ghost" id="resetBtn">Mot de passe oublié ? Tout réinitialiser</button></div>
+  </form>
+</div>
+
+<!-- ===== Application ===== -->
+<div class="app" id="app" hidden>
+  <div class="top">
+    <div>
+      <div class="eyebrow" id="monthName"></div>
+      <h1>Planning du mois</h1>
+    </div>
+    <div class="sp"></div>
+    <button id="btnSettings">Réglages</button>
+    <button id="btnLock">Verrouiller</button>
+  </div>
+
+  <div class="layout">
+    <aside class="side">
+      <section class="card" id="report"></section>
+      <section class="card" id="tasks"></section>
+    </aside>
+    <main class="card" id="main"></main>
+  </div>
+</div>
+
+<!-- ===== Dialogue : tâche ===== -->
+<dialog id="dlgTask">
+  <form id="fTask">
+    <h3 id="tTitle">Nouvelle tâche</h3>
+    <label>Nom <input type="text" id="tName" required maxlength="60"></label>
+    <div class="row">
+      <label>Durée
+        <select id="tDur">
+          <option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option>
+          <option value="60">1 h</option><option value="90">1 h 30</option><option value="120">2 h</option>
+          <option value="180">3 h</option>
+        </select>
+      </label>
+      <label>Fréquence
+        <select id="tFreq">
+          <option value="once">Une seule fois</option>
+          <option value="week">Chaque semaine</option>
+          <option value="month">Chaque mois</option>
+        </select>
+      </label>
+    </div>
+    <label id="tNWrap">Nombre de fois par <span id="tNUnit">semaine</span>
+      <input type="number" id="tN" min="1" max="7" value="1">
+    </label>
+    <div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Pénibilité</div>
+      <div class="pens">
+        <label class="p-plaisant"><input type="radio" name="pen" value="plaisant">Plaisant</label>
+        <label class="p-facile"><input type="radio" name="pen" value="facile">Facile</label>
+        <label class="p-moyen"><input type="radio" name="pen" value="moyen" checked>Moyen</label>
+        <label class="p-penible"><input type="radio" name="pen" value="penible">Pénible</label>
+      </div>
+    </div>
+    <div class="foot">
+      <button type="button" class="danger" id="tDelete">Supprimer</button>
+      <span class="sp"></span>
+      <button type="button" data-close>Annuler</button>
+      <button type="submit" class="primary" id="tSubmit">Proposer un placement</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===== Dialogue : créneau ===== -->
+<dialog id="dlgOcc">
+  <form id="fOcc">
+    <h3 id="oTitle"></h3>
+    <p class="hint" id="oMeta"></p>
+    <div class="row">
+      <label>Jour <input type="date" id="oDate" required></label>
+      <label>Heure <input type="time" id="oTime" step="900" required></label>
+    </div>
+    <label>Durée (minutes) <input type="number" id="oDur" min="5" max="600" step="5" required></label>
+    <label class="chk"><input type="checkbox" id="oDone"> Tâche réalisée</label>
+    <div class="foot">
+      <button type="button" class="danger" id="oDelete">Retirer</button>
+      <button type="button" id="oEditTask">Modifier la tâche…</button>
+      <span class="sp"></span>
+      <button type="button" data-close>Annuler</button>
+      <button type="submit" class="primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===== Dialogue : réglages ===== -->
+<dialog id="dlgSet">
+  <form id="fSet">
+    <h3>Réglages</h3>
+    <p class="hint">Plages disponibles : les propositions de placement ne sortent jamais de ces horaires.</p>
+    <div class="av" id="avail"></div>
+    <p class="hint">Les données restent dans ce navigateur. Exportez-les pour les sauvegarder ou les transférer.</p>
+    <div class="foot" style="justify-content:flex-start">
+      <button type="button" id="btnExport">Exporter</button>
+      <button type="button" id="btnImport">Importer…</button>
+      <button type="button" id="btnPw">Changer le mot de passe</button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </div>
+    <div class="foot">
+      <button type="button" data-close>Annuler</button>
+      <button type="submit" class="primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" hidden role="status"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   Planning du mois — tout est côté client (localStorage).
+   Le mot de passe est une protection légère : il est choisi au premier
+   lancement et seule son empreinte (PBKDF2) est gardée dans le navigateur.
+   ===================================================================== */
+
+const KEY = 'planning.v1', AUTH = 'planning.auth', OPEN = 'planning.open', VIEW = 'planning.view';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+const wd = d => (d.getDay() + 6) % 7;                       // lundi = 0
+const mondayOf = d => addDays(d, -wd(d));
+const dayDiff = (a, b) => Math.round((parseYmd(a) - parseYmd(b)) / 864e5);
+const fmtTime = m => `${Math.floor(m / 60)}h${pad(m % 60)}`;
+const fmtDur = m => m < 60 ? `${m} min` : (m % 60 ? `${Math.floor(m / 60)} h ${pad(m % 60)}` : `${m / 60} h`);
+const fmt = (d, o) => d.toLocaleDateString('fr-FR', o);
+const WD = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+
+function ctx() {
+  const n = new Date();
+  const first = new Date(n.getFullYear(), n.getMonth(), 1), last = new Date(n.getFullYear(), n.getMonth() + 1, 0);
+  return { n, today: ymd(n), nowMin: n.getHours() * 60 + n.getMinutes(), first, last, a: ymd(first), b: ymd(last) };
+}
+const inMonth = (s, c = ctx()) => s >= c.a && s <= c.b;
+
+/* ---------- modèle ---------- */
+const PEN = {
+  plaisant: { label: 'Plaisant', w: -1 },
+  facile:   { label: 'Facile',   w: 0.5 },
+  moyen:    { label: 'Moyen',    w: 1 },
+  penible:  { label: 'Pénible',  w: 2 },
+};
+const DEFAULT_AVAIL = [[1080, 1290], [1080, 1290], [1080, 1290], [1080, 1290], [1080, 1290], [540, 1140], [600, 1080]];
+const EXAMPLES = [
+  ['Code Jeu', 60, 'month', 1, 'plaisant'],
+  ['Ménage salle d\'eau (rapide)', 15, 'week', 1, 'moyen'],
+  ['Ménage salle d\'eau (à fond)', 30, 'month', 1, 'penible'],
+  ['Ménage cuisine (rapide)', 15, 'week', 3, 'facile'],
+  ['Ménage cuisine (à fond)', 30, 'month', 1, 'penible'],
+  ['Tri papiers', 60, 'month', 1, 'penible'],
+  ['Lecture roman', 60, 'week', 1, 'plaisant'],
+];
+
+let state = { tasks: [], occs: [], settings: { avail: DEFAULT_AVAIL } };
+let ui = { view: localStorage.getItem(VIEW) || (innerWidth < 700 ? 'day' : 'week'), cursor: ymd(new Date()) };
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.tasks) && Array.isArray(s.occs)) state = { ...state, ...s, settings: { ...state.settings, ...(s.settings || {}) } };
+  } catch (e) { /* données illisibles : on repart de zéro sans rien écraser avant la première sauvegarde */ }
+}
+const save = () => localStorage.setItem(KEY, JSON.stringify(state));
+const taskOf = o => state.tasks.find(t => t.id === o.taskId);
+const liveTasks = () => state.tasks.filter(t => !t.archived);
+const freqLabel = f => f.type === 'once' ? 'Ponctuelle'
+  : f.type === 'week' ? (f.n === 1 ? 'Hebdomadaire' : `${f.n} fois par semaine`)
+  : (f.n === 1 ? 'Mensuelle' : `${f.n} fois par mois`);
+
+/* ---------- score de bien-être ----------
+   Chaque créneau pèse (durée / 30 min) × poids de pénibilité.
+   Une journée perd 10 points par unité pénible, une semaine 4 ;
+   les tâches plaisantes en rendent une partie (plafonnée).            */
+function charge(occs) {
+  let pain = 0, joy = 0;
+  for (const o of occs) {
+    const t = taskOf(o); if (!t) continue;
+    const u = o.dur / 30, w = PEN[t.pen].w;
+    if (w < 0) joy += u; else pain += w * u;
+  }
+  return { pain, joy };
+}
+const dayRaw = occs => { const l = charge(occs); return 100 - 10 * l.pain + 5 * Math.min(l.joy, 4); };
+const weekRaw = occs => { const l = charge(occs); return 100 - 4 * l.pain + 2 * Math.min(l.joy, 10); };
+const clampScore = x => Math.max(0, Math.min(100, Math.round(x)));
+const occsOn = (d, list = state.occs) => list.filter(o => o.date === d);
+const occsWeek = (mon, list = state.occs) => { const a = ymd(mon), b = ymd(addDays(mon, 6)); return list.filter(o => o.date >= a && o.date <= b); };
+const dayScore = d => clampScore(dayRaw(occsOn(d)));
+const weekScore = mon => clampScore(weekRaw(occsWeek(mon)));
+function monthScore() {
+  const c = ctx(); let s = 0, k = 0;
+  for (let m = mondayOf(c.first); m <= c.last; m = addDays(m, 7)) { s += weekScore(m); k++; }
+  return Math.round(s / k);
+}
+const scoreClass = s => s >= 75 ? 's-good' : s >= 50 ? 's-mid' : 's-bad';
+const scoreWord = s => s >= 75 ? 'Serein' : s >= 50 ? 'Chargé' : 'Éprouvant';
+
+/* ---------- proposition de placement ---------- */
+// Coût convexe : plus une période est déjà chargée, plus y ajouter de la pénibilité coûte cher,
+// et plus y glisser une tâche plaisante rapporte.
+const badness = raw => raw < 100 ? (100 - raw) ** 2 / 100 : -(raw - 100) * 0.1;
+const overlaps = (o, s, dur) => s < o.start + o.dur && o.start < s + dur;
+
+function findSlot(task, d, dayOccs, dur = task.dur) {
+  const c = ctx(), win = state.settings.avail[wd(parseYmd(d))];
+  if (!win) return null;
+  let a = win[0]; const b = win[1];
+  if (d === c.today) a = Math.max(a, Math.ceil(c.nowMin / 15) * 15);
+  const free = [];
+  for (let t = a; t + dur <= b; t += 15) if (!dayOccs.some(o => overlaps(o, t, dur))) free.push(t);
+  if (!free.length) return null;
+  if (task.pen === 'plaisant') {            // en récompense, après les corvées du jour
+    const end = Math.max(0, ...dayOccs.filter(o => taskOf(o) && taskOf(o).pen !== 'plaisant').map(o => o.start + o.dur));
+    return free.find(t => t >= end) ?? free[0];
+  }
+  if (task.pen === 'penible') {             // pas deux tâches pénibles collées
+    const hard = dayOccs.filter(o => taskOf(o) && taskOf(o).pen === 'penible');
+    return free.find(t => !hard.some(o => o.start + o.dur === t || t + dur === o.start)) ?? free[0];
+  }
+  return free[0];
+}
+
+function placeOne(task, days, list, dur = task.dur) {
+  let best = null;
+  days.forEach((d, i) => {
+    const dayOccs = occsOn(d, list);
+    if (dayOccs.some(o => o.taskId === task.id)) return;
+    const slot = findSlot(task, d, dayOccs, dur);
+    if (slot == null) return;
+    const fake = { taskId: task.id, dur }, wk = occsWeek(mondayOf(parseYmd(d)), list);
+    let cost = badness(dayRaw([...dayOccs, fake])) - badness(dayRaw(dayOccs))
+             + badness(weekRaw([...wk, fake])) - badness(weekRaw(wk));
+    const hrs = dayOccs.reduce((s, o) => s + o.dur, 0) / 60;   // ne pas remplir une même journée
+    cost += 1.5 * ((hrs + dur / 60) ** 2 - hrs ** 2);
+    for (const o of list) if (o.taskId === task.id) {          // espacer les répétitions
+      const gap = Math.abs(dayDiff(o.date, d));
+      if (gap === 1) cost += 6; else if (gap === 2) cost += 2;
+    }
+    cost += i * 0.02;                                           // à égalité, au plus tôt
+    if (!best || cost < best.cost) best = { cost, d, slot };
+  });
+  return best;
+}
+
+// Ce qu'il manque à une tâche d'ici la fin du mois : [{ days, need }]
+function missing(task, force = false, list = state.occs) {
+  const c = ctx(), mine = list.filter(o => o.taskId === task.id), out = [];
+  const rest = []; for (let d = parseYmd(c.today); d <= c.last; d = addDays(d, 1)) rest.push(ymd(d));
+  if (task.freq.type === 'week') {
+    for (let m = mondayOf(c.n); m <= c.last; m = addDays(m, 7)) {
+      const a = ymd(m), b = ymd(addDays(m, 6));
+      const days = rest.filter(d => d >= a && d <= b);
+      const have = mine.filter(o => o.date >= a && o.date <= b);
+      const freeDays = days.filter(d => !have.some(o => o.date === d)).length;
+      const need = Math.max(0, Math.min(task.freq.n - have.length, freeDays));
+      if (need) out.push({ days, need });
+    }
+  } else if (task.freq.type === 'month') {
+    const need = Math.max(0, task.freq.n - mine.filter(o => inMonth(o.date, c)).length);
+    if (need) out.push({ days: rest, need });
+  } else if (force || !mine.some(o => inMonth(o.date, c))) {
+    out.push({ days: rest, need: 1 });
+  }
+  return out;
+}
+const missingCount = t => missing(t).reduce((s, g) => s + g.need, 0);
+
+function propose(tasks, force = false) {
+  // Les plus pénibles d'abord (elles prennent les périodes les plus légères),
+  // les plaisantes en dernier (elles vont compenser les périodes les plus lourdes).
+  const order = [...tasks].sort((a, b) => PEN[b.pen].w * b.dur - PEN[a.pen].w * a.dur);
+  const placed = []; let failed = 0;
+  for (const t of order) for (const g of missing(t, force)) for (let i = 0; i < g.need; i++) {
+    const p = placeOne(t, g.days, state.occs);
+    if (!p) { failed++; continue; }
+    const o = { id: uid(), taskId: t.id, date: p.d, start: p.slot, dur: t.dur, done: false, proposed: true };
+    state.occs.push(o); placed.push(o);
+  }
+  save();
+  if (placed.length && !placed.every(o => viewDays().includes(o.date))) setView('month');
+  render();
+  const one = placed.length === 1 ? placed[0] : null;
+  toast((one ? `Proposé : ${fmt(parseYmd(one.date), { weekday: 'long', day: 'numeric' })} à ${fmtTime(one.start)}`
+            : placed.length ? `${placed.length} créneaux proposés` : 'Aucun créneau proposé')
+        + (failed ? ` · ${failed} sans place libre (voir Réglages)` : ''));
+  return placed.length;
+}
+
+function reorderDay(d) {
+  const c = ctx(), todo = occsOn(d).filter(o => !o.done), fixed = occsOn(d).filter(o => o.done);
+  if (todo.length < 2) return toast('Rien à réordonner');
+  const pen = o => taskOf(o)?.pen || 'moyen';
+  const hard = todo.filter(o => pen(o) !== 'plaisant').sort((a, b) => PEN[pen(b)].w * b.dur - PEN[pen(a)].w * a.dur);
+  const nice = todo.filter(o => pen(o) === 'plaisant');
+  const seq = [];
+  while (hard.length) { const h = hard.shift(); seq.push(h); if (pen(h) === 'penible' && nice.length > 1) seq.push(nice.shift()); }
+  seq.push(...nice);
+  const win = state.settings.avail[wd(parseYmd(d))];
+  let t = Math.min(...todo.map(o => o.start), win ? win[0] : 1440);
+  if (d === c.today) t = Math.max(t, Math.ceil(c.nowMin / 15) * 15);
+  for (const o of seq) {
+    let hit; while ((hit = fixed.find(f => overlaps(f, t, o.dur)))) t = hit.start + hit.dur;
+    o.start = Math.min(t, 1440 - o.dur); t += o.dur;
+  }
+  save(); render(); toast('Journée réordonnée : le plus dur d\'abord, le plaisant en récompense');
+}
+
+function postponeLate() {
+  const c = ctx(), late = state.occs.filter(o => inMonth(o.date, c) && o.date < c.today && !o.done);
+  const rest = []; for (let d = parseYmd(c.today); d <= c.last; d = addDays(d, 1)) rest.push(ymd(d));
+  let moved = 0;
+  for (const o of late) {
+    const t = taskOf(o); if (!t) continue;
+    const others = state.occs.filter(x => x !== o);
+    const p = placeOne(t, rest, others, o.dur);
+    if (p) { o.date = p.d; o.start = p.slot; o.proposed = true; moved++; }
+  }
+  save(); if (moved) setView('month'); render();
+  toast(moved ? `${moved} tâche(s) reportée(s)` : 'Aucune place libre pour reporter');
+}
+
+/* ---------- vues ---------- */
+function setView(v) { ui.view = v; localStorage.setItem(VIEW, v); }
+function clampCursor() { const c = ctx(); if (ui.cursor < c.a) ui.cursor = c.a; if (ui.cursor > c.b) ui.cursor = c.b; }
+function viewDays() {
+  const c = ctx(); clampCursor();
+  if (ui.view === 'day') return [ui.cursor];
+  if (ui.view === 'week') { const m = mondayOf(parseYmd(ui.cursor)); return Array.from({ length: 7 }, (_, i) => ymd(addDays(m, i))); }
+  const out = []; for (let d = c.first; d <= c.last; d = addDays(d, 1)) out.push(ymd(d)); return out;
+}
+const HH = 64;                                   // pixels par heure
+let H0 = 7, H1 = 23;
+
+function render() {
+  const c = ctx(); clampCursor();
+  $('#monthName').textContent = fmt(c.n, { month: 'long', year: 'numeric' });
+  renderMain(c); renderReport(c); renderTasks(c);
+}
+
+function renderMain(c) {
+  const days = viewDays(), cur = parseYmd(ui.cursor);
+  let label, score;
+  if (ui.view === 'day') { label = fmt(cur, { weekday: 'long', day: 'numeric', month: 'long' }); score = dayScore(ui.cursor); }
+  else if (ui.view === 'week') {
+    const m = mondayOf(cur);
+    label = `Semaine du ${m.getDate()} au ${fmt(addDays(m, 6), { day: 'numeric', month: 'long' })}`; score = weekScore(m);
+  } else { label = fmt(c.n, { month: 'long', year: 'numeric' }); score = monthScore(); }
+  const step = ui.view === 'day' ? 1 : 7;
+  const prevOk = ui.view !== 'month' && (ui.view === 'day' ? ui.cursor > c.a : ymd(mondayOf(cur)) > c.a);
+  const nextOk = ui.view !== 'month' && (ui.view === 'day' ? ui.cursor < c.b : ymd(addDays(mondayOf(cur), 6)) < c.b);
+  const props = state.occs.filter(o => o.proposed).length;
+
+  let h = `<div class="bar">
+    <div class="seg" role="group" aria-label="Vue">
+      ${[['day', 'Jour'], ['week', 'Semaine'], ['month', 'Mois']].map(([v, l]) => `<button data-view="${v}" aria-pressed="${ui.view === v}">${l}</button>`).join('')}
+    </div>
+    <button data-nav="${-step}" ${prevOk ? '' : 'disabled'} aria-label="Précédent">‹</button>
+    <button data-nav="${step}" ${nextOk ? '' : 'disabled'} aria-label="Suivant">›</button>
+    <button data-nav="0">Aujourd'hui</button>
+    <span class="label">${esc(label)}</span>
+    <span class="sp"></span>
+    ${ui.view === 'day' ? '<button data-reorder>Réordonner la journée</button>' : ''}
+    <span class="score ${scoreClass(score)}" title="Score de bien-être : baisse quand trop de tâches pénibles tombent sur la même période, remonte avec les tâches plaisantes.">Bien-être <b>${score}</b> ${scoreWord(score)}</span>
+  </div>`;
+  if (props) h += `<div class="banner"><span><b>${props} créneau${props > 1 ? 'x' : ''} proposé${props > 1 ? 's' : ''}</b> (en pointillés). Déplacez-les si besoin, puis validez.</span><span class="sp"></span>
+    <button data-props="cancel">Annuler</button><button class="primary" data-props="ok">Valider</button></div>`;
+  h += ui.view === 'month' ? monthHtml(c) : gridHtml(c, days);
+  const main = $('#main'), sc = $('.tg-scroll', main), keep = sc ? sc.scrollTop : null;
+  main.innerHTML = h;
+  const sc2 = $('.tg-scroll', main);
+  if (sc2) {
+    if (keep != null) sc2.scrollTop = keep;
+    else { const firstA = Math.min(...days.map(d => (state.settings.avail[wd(parseYmd(d))] || [1080])[0])); sc2.scrollTop = Math.max(0, (firstA / 60 - H0 - 0.5) * HH); }
+  }
+}
+
+function layoutDay(occs) {       // colonnes côte à côte pour les créneaux qui se chevauchent
+  const sorted = [...occs].sort((a, b) => a.start - b.start || b.dur - a.dur), out = [];
+  let cluster = [], ends = [], clusterEnd = -1;
+  const flush = () => { for (const x of cluster) out.push({ ...x, n: ends.length }); cluster = []; ends = []; };
+  for (const o of sorted) {
+    if (o.start >= clusterEnd) flush();
+    let k = ends.findIndex(e => e <= o.start); if (k < 0) { k = ends.length; ends.push(0); }
+    ends[k] = o.start + o.dur; clusterEnd = Math.max(clusterEnd, ends[k]); cluster.push({ o, k });
+  }
+  flush(); return out;
+}
+
+function gridHtml(c, days) {
+  const shown = state.occs.filter(o => days.includes(o.date));
+  const av = days.map(d => state.settings.avail[wd(parseYmd(d))]).filter(Boolean);
+  H0 = Math.max(0, Math.min(7, ...av.map(a => Math.floor(a[0] / 60)), ...shown.map(o => Math.floor(o.start / 60))));
+  H1 = Math.min(24, Math.max(22, ...av.map(a => Math.ceil(a[1] / 60)), ...shown.map(o => Math.ceil((o.start + o.dur) / 60))));
+  const y = m => (m - H0 * 60) * HH / 60, height = (H1 - H0) * HH;
+  let head = '<div class="gut"></div>', body = `<div class="gut" style="height:${height}px">`;
+  for (let hr = H0 + 1; hr < H1; hr++) body += `<span style="top:${y(hr * 60)}px">${hr}h</span>`;
+  body += '</div>';
+  for (const d of days) {
+    const dt = parseYmd(d), out = !inMonth(d, c), s = dayScore(d), win = state.settings.avail[wd(dt)];
+    head += `<div class="dh ${d === c.today ? 'today' : ''} ${out ? 'out' : ''}">
+      <button data-goto="${d}" ${out ? 'disabled' : ''}>${fmt(dt, { weekday: 'short' })} ${dt.getDate()}</button>
+      ${out ? '' : `<span class="dot ${scoreClass(s)}" title="Bien-être du jour">${s}</span>`}</div>`;
+    body += `<div class="col ${out ? 'out' : ''}" data-date="${d}" style="height:${height}px;--hh:${HH}px">`;
+    if (win && !out) body += `<div class="avail" style="top:${y(win[0])}px;height:${(win[1] - win[0]) * HH / 60}px"></div>`;
+    body += '<div class="lines"></div>';
+    if (d === c.today && c.nowMin >= H0 * 60 && c.nowMin <= H1 * 60) body += `<div class="now" style="top:${y(c.nowMin)}px"></div>`;
+    for (const { o, k, n } of layoutDay(occsOn(d))) {
+      const t = taskOf(o); if (!t) continue;
+      const hgt = Math.max(15, o.dur * HH / 60 - 2);
+      body += `<div class="blk p-${t.pen} ${o.done ? 'done' : ''} ${o.proposed ? 'prop' : ''}" data-occ="${o.id}"
+        style="top:${y(o.start) + 1}px;height:${hgt}px;left:calc(${k / n * 100}% + 2px);width:calc(${100 / n}% - 4px)"
+        title="${esc(t.name)} · ${fmtTime(o.start)} · ${fmtDur(o.dur)} · ${PEN[t.pen].label}">
+        <input type="checkbox" data-done="${o.id}" ${o.done ? 'checked' : ''} aria-label="Réalisée : ${esc(t.name)}">
+        <div class="tx"><div class="nm">${esc(t.name)}</div>${hgt >= 30 ? `<div class="tm">${fmtTime(o.start)} · ${fmtDur(o.dur)}</div>` : ''}</div></div>`;
+    }
+    body += '</div>';
+  }
+  const n = days.length;
+  return `<div class="tg-scroll"><div class="tg" style="--n:${n};--minw:${n > 1 ? 96 : 200}px">
+    <div class="tg-head">${head}</div><div class="tg-body">${body}</div></div></div>`;
+}
+
+function monthHtml(c) {
+  let h = '<div class="mg">' + WD.map(w => `<div class="wdh">${w.slice(0, 3)}.</div>`).join('');
+  for (let i = 0; i < wd(c.first); i++) h += '<div class="cell blank"></div>';
+  for (let d = c.first; d <= c.last; d = addDays(d, 1)) {
+    const s = ymd(d), occs = occsOn(s).sort((a, b) => a.start - b.start), sc = dayScore(s);
+    h += `<div class="cell ${s === c.today ? 'today' : ''} ${s < c.today ? 'past' : ''}" data-date="${s}">
+      <div class="hd"><button data-goto="${s}" title="Voir la journée">${d.getDate()}</button>${occs.length ? `<span class="dot ${scoreClass(sc)}" title="Bien-être du jour">${sc}</span>` : ''}</div>`;
+    for (const o of occs) {
+      const t = taskOf(o); if (!t) continue;
+      h += `<div class="chip p-${t.pen} ${o.done ? 'done' : ''} ${o.proposed ? 'prop' : ''}" draggable="true" data-occ="${o.id}"
+        title="${esc(t.name)} · ${fmtTime(o.start)} · ${fmtDur(o.dur)} · ${PEN[t.pen].label}">
+        <input type="checkbox" data-done="${o.id}" ${o.done ? 'checked' : ''} aria-label="Réalisée : ${esc(t.name)}"><span>${esc(t.name)}</span></div>`;
+    }
+    h += '</div>';
+  }
+  const tail = (7 - (wd(c.first) + c.last.getDate()) % 7) % 7;
+  for (let i = 0; i < tail; i++) h += '<div class="cell blank"></div>';
+  return h + '</div>';
+}
+
+function renderReport(c) {
+  const days = viewDays().filter(d => inMonth(d, c)), occs = state.occs.filter(o => days.includes(o.date) && taskOf(o));
+  const done = occs.filter(o => o.done), min = l => l.reduce((s, o) => s + o.dur, 0);
+  const late = state.occs.filter(o => inMonth(o.date, c) && o.date < c.today && !o.done && taskOf(o)).length;
+  const pct = occs.length ? Math.round(done.length / occs.length * 100) : 0;
+  const title = { day: 'Bilan du jour', week: 'Bilan de la semaine', month: 'Bilan du mois' }[ui.view];
+  $('#report').innerHTML = `<h2>${title}</h2>
+    <div class="stat"><span>Tâches réalisées</span><b>${done.length} / ${occs.length}</b></div>
+    <div class="prog" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
+    <div class="stat"><span>Temps réalisé</span><b>${fmtDur(min(done))} / ${fmtDur(min(occs))}</b></div>
+    <div class="stat"><span>Dont pénible</span><b>${fmtDur(min(done.filter(o => taskOf(o).pen === 'penible')))} / ${fmtDur(min(occs.filter(o => taskOf(o).pen === 'penible')))}</b></div>
+    ${late ? `<div class="late"><span>${late} tâche${late > 1 ? 's' : ''} en retard</span><button data-late>Reporter</button></div>` : ''}`;
+}
+
+function renderTasks(c) {
+  const tasks = liveTasks().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  const todo = tasks.filter(t => t.freq.type !== 'once' && missingCount(t) > 0);
+  let h = `<h2>Mes tâches</h2><div class="acts">
+    <button class="primary" data-new>+ Nouvelle tâche</button>
+    ${todo.length ? `<button data-planall title="Propose un créneau pour tout ce qui manque d'ici la fin du mois">Tout planifier (${todo.length})</button>` : ''}</div>`;
+  if (!tasks.length) h += `<p class="empty">Aucune tâche pour l'instant.</p><button data-examples>Charger les exemples</button>`;
+  for (const t of tasks) {
+    const mine = state.occs.filter(o => o.taskId === t.id), month = mine.filter(o => inMonth(o.date, c));
+    const last = mine.filter(o => o.done).map(o => o.date).sort().pop();
+    const miss = missingCount(t), before = mine.some(o => o.date < c.a);
+    const lbl = t.freq.type === 'once' ? (month.length ? 'Replanifier' : before ? 'Reprendre' : 'Planifier')
+      : miss ? (!month.length && before ? 'Reprendre' : `Planifier (${miss})`) : '';
+    h += `<div class="task p-${t.pen}">
+      <div class="nm">${esc(t.name)}</div>
+      <div class="meta">${fmtDur(t.dur)} · ${freqLabel(t.freq)} · <span class="pill">${PEN[t.pen].label}</span></div>
+      <div class="meta">Ce mois : ${month.filter(o => o.done).length}/${month.length} faite${month.length > 1 ? 's' : ''}${last ? ` · dernière le ${fmt(parseYmd(last), { day: 'numeric', month: 'short' })}` : ''}</div>
+      <div class="btns">${lbl ? `<button data-plan="${t.id}">${lbl}</button>` : ''}<button class="ghost" data-edit="${t.id}" aria-label="Modifier ${esc(t.name)}">Modifier</button></div>
+    </div>`;
+  }
+  h += `<div class="legend">${Object.entries(PEN).map(([k, p]) => `<span class="pill p-${k}">${p.label}</span>`).join('')}</div>`;
+  $('#tasks').innerHTML = h;
+}
+
+/* ---------- dialogues ---------- */
+let editTaskId = null, editOccId = null;
+function openTask(id) {
+  editTaskId = id || null;
+  const t = id ? state.tasks.find(x => x.id === id) : { name: '', dur: 30, freq: { type: 'week', n: 1 }, pen: 'moyen' };
+  $('#tTitle').textContent = id ? 'Modifier la tâche' : 'Nouvelle tâche';
+  $('#tName').value = t.name;
+  const sel = $('#tDur'); if (![...sel.options].some(o => +o.value === t.dur)) sel.add(new Option(fmtDur(t.dur), t.dur));
+  sel.value = t.dur; $('#tFreq').value = t.freq.type; $('#tN').value = t.freq.n || 1;
+  $(`#fTask input[value=${t.pen}]`).checked = true;
+  $('#tDelete').hidden = !id; $('#tSubmit').textContent = id ? 'Enregistrer' : 'Proposer un placement';
+  syncFreq(); $('#dlgTask').showModal(); $('#tName').focus();
+}
+function syncFreq() {
+  const f = $('#tFreq').value; $('#tNWrap').hidden = f === 'once';
+  $('#tNUnit').textContent = f === 'week' ? 'semaine' : 'mois'; $('#tN').max = f === 'week' ? 7 : 31;
+}
+$('#tFreq').onchange = syncFreq;
+$('#fTask').onsubmit = e => {
+  e.preventDefault();
+  const type = $('#tFreq').value;
+  const data = { name: $('#tName').value.trim(), dur: +$('#tDur').value, pen: $('#fTask input[name=pen]:checked').value,
+    freq: { type, n: type === 'once' ? 1 : Math.max(1, Math.min(+$('#tN').value || 1, type === 'week' ? 7 : 31)) } };
+  if (!data.name) return;
+  $('#dlgTask').close();
+  if (editTaskId) { Object.assign(state.tasks.find(t => t.id === editTaskId), data); save(); render(); }
+  else { const t = { id: uid(), ...data, draft: true }; state.tasks.push(t); if (!propose([t], true)) { delete t.draft; save(); render(); } }
+};
+$('#tDelete').onclick = () => {
+  const t = state.tasks.find(x => x.id === editTaskId), c = ctx();
+  if (!confirm(`Supprimer « ${t.name} » ? Les créneaux à venir non réalisés seront retirés ; l'historique est conservé.`)) return;
+  t.archived = true;
+  state.occs = state.occs.filter(o => !(o.taskId === t.id && !o.done && o.date >= c.today));
+  save(); $('#dlgTask').close(); render();
+};
+
+function openOcc(id) {
+  const o = state.occs.find(x => x.id === id), t = o && taskOf(o); if (!t) return;
+  editOccId = id; const c = ctx();
+  $('#oTitle').textContent = t.name;
+  $('#oMeta').textContent = `${freqLabel(t.freq)} · ${PEN[t.pen].label}` + (o.proposed ? ' · créneau proposé' : '');
+  const od = $('#oDate'); od.min = c.a; od.max = c.b; od.value = o.date;
+  $('#oTime').value = `${pad(Math.floor(o.start / 60))}:${pad(o.start % 60)}`;
+  $('#oDur').value = o.dur; $('#oDone').checked = o.done;
+  $('#dlgOcc').showModal();
+}
+$('#fOcc').onsubmit = e => {
+  e.preventDefault();
+  const o = state.occs.find(x => x.id === editOccId), [hh, mm] = $('#oTime').value.split(':').map(Number);
+  o.date = $('#oDate').value; o.start = hh * 60 + mm; o.dur = Math.max(5, +$('#oDur').value || o.dur); o.done = $('#oDone').checked;
+  save(); $('#dlgOcc').close(); render();
+};
+$('#oDelete').onclick = () => { state.occs = state.occs.filter(o => o.id !== editOccId); save(); $('#dlgOcc').close(); render(); };
+$('#oEditTask').onclick = () => { const o = state.occs.find(x => x.id === editOccId); $('#dlgOcc').close(); openTask(o.taskId); };
+
+function openSettings() {
+  $('#avail').innerHTML = WD.map((w, i) => {
+    const a = state.settings.avail[i], t = m => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+    return `<label><input type="checkbox" data-av="${i}" ${a ? 'checked' : ''}>${w}</label>
+      <input type="time" step="900" data-av0="${i}" value="${t(a ? a[0] : 1080)}" aria-label="Début ${w}">
+      <input type="time" step="900" data-av1="${i}" value="${t(a ? a[1] : 1260)}" aria-label="Fin ${w}">`;
+  }).join('');
+  $('#dlgSet').showModal();
+}
+$('#fSet').onsubmit = e => {
+  e.preventDefault();
+  const m = v => { const [h, mi] = v.split(':').map(Number); return h * 60 + mi; };
+  state.settings.avail = WD.map((_, i) => {
+    if (!$(`[data-av="${i}"]`).checked) return null;
+    const a = m($(`[data-av0="${i}"]`).value), b = m($(`[data-av1="${i}"]`).value);
+    return b > a ? [a, b] : null;
+  });
+  save(); $('#dlgSet').close(); render();
+};
+$('#btnExport').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 1)], { type: 'application/json' }));
+  a.download = `planning-${ctx().today}.json`; a.click(); URL.revokeObjectURL(a.href);
+};
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const s = JSON.parse(await f.text());
+    if (!Array.isArray(s.tasks) || !Array.isArray(s.occs)) throw 0;
+    if (!confirm(`Remplacer les données de ce navigateur par ce fichier (${s.tasks.length} tâches, ${s.occs.length} créneaux) ?`)) return;
+    state = { tasks: s.tasks, occs: s.occs, settings: { avail: DEFAULT_AVAIL, ...(s.settings || {}) } };
+    save(); $('#dlgSet').close(); render(); toast('Données importées');
+  } catch (err) { toast('Fichier illisible'); }
+};
+$('#btnPw').onclick = () => { $('#dlgSet').close(); showLock('change'); };
+$$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 4500); }
+
+/* ---------- événements ---------- */
+$('#btnSettings').onclick = openSettings;
+$('#btnLock').onclick = () => { sessionStorage.removeItem(OPEN); showLock(); };
+
+document.addEventListener('change', e => {
+  const id = e.target.dataset?.done; if (!id) return;
+  const o = state.occs.find(x => x.id === id); o.done = e.target.checked; if (o.done) o.proposed = false;
+  save(); render();
+});
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button, .chip'); if (!b) return;
+  const d = b.dataset;
+  if (d.view) { setView(d.view); render(); }
+  else if (d.nav != null) { const n = +d.nav; ui.cursor = n ? ymd(addDays(parseYmd(ui.cursor), n)) : ctx().today; render(); }
+  else if (d.goto) { ui.cursor = d.goto; setView('day'); render(); }
+  else if (d.reorder != null) reorderDay(ui.cursor);
+  else if (d.props) {
+    if (d.props === 'ok') state.occs.forEach(o => delete o.proposed);
+    else state.occs = state.occs.filter(o => !o.proposed);
+    const used = new Set(state.occs.map(o => o.taskId));
+    state.tasks = state.tasks.filter(t => !(t.draft && d.props === 'cancel' && !used.has(t.id)));
+    state.tasks.forEach(t => delete t.draft);
+    save(); render();
+  }
+  else if (d.new != null) openTask();
+  else if (d.edit) openTask(d.edit);
+  else if (d.plan) propose([state.tasks.find(t => t.id === d.plan)], true);
+  else if (d.planall != null) propose(liveTasks().filter(t => t.freq.type !== 'once'));
+  else if (d.late != null) postponeLate();
+  else if (d.examples != null) {
+    const ts = EXAMPLES.map(([name, dur, type, n, pen]) => ({ id: uid(), name, dur, freq: { type, n }, pen }));
+    state.tasks.push(...ts); propose(ts, true);
+  }
+  else if (d.occ && b.classList.contains('chip') && e.target.tagName !== 'INPUT') openOcc(d.occ);
+});
+
+// Glisser un bloc dans la grille horaire (jour / semaine) : change le jour et l'heure.
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.blk'); if (!el || e.target.tagName === 'INPUT' || e.button) return;
+  const o = state.occs.find(x => x.id === el.dataset.occ); if (!o) return;
+  const offY = e.clientY - el.getBoundingClientRect().top, sx = e.clientX, sy = e.clientY;
+  let moved = false, nd = o.date, ns = o.start;
+  el.setPointerCapture(e.pointerId);
+  const move = ev => {
+    if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 5) return;
+    moved = true; el.classList.add('drag');
+    const col = $$('.col:not(.out)').find(c => { const r = c.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX < r.right; }) || el.parentNode;
+    let m = H0 * 60 + (ev.clientY - offY - col.getBoundingClientRect().top) / HH * 60;
+    m = Math.max(H0 * 60, Math.min(H1 * 60 - o.dur, Math.round(m / 15) * 15));
+    nd = col.dataset.date; ns = m;
+    if (el.parentNode !== col) col.appendChild(el);
+    el.style.top = (m - H0 * 60) * HH / 60 + 1 + 'px'; el.style.left = '2px'; el.style.width = 'calc(100% - 4px)';
+  };
+  const up = () => {
+    el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+    if (moved) { o.date = nd; o.start = ns; save(); render(); } else openOcc(o.id);
+  };
+  el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+});
+
+// Glisser une étiquette d'un jour à l'autre dans la vue mois.
+document.addEventListener('dragstart', e => { const c = e.target.closest?.('.chip'); if (c) { e.dataTransfer.setData('text/plain', c.dataset.occ); e.dataTransfer.effectAllowed = 'move'; } });
+document.addEventListener('dragover', e => { const c = e.target.closest?.('.cell[data-date]'); if (c) { e.preventDefault(); $$('.cell.over').forEach(x => x !== c && x.classList.remove('over')); c.classList.add('over'); } });
+document.addEventListener('dragend', () => $$('.cell.over').forEach(x => x.classList.remove('over')));
+document.addEventListener('drop', e => {
+  const c = e.target.closest?.('.cell[data-date]'); if (!c) return; e.preventDefault();
+  const o = state.occs.find(x => x.id === e.dataTransfer.getData('text/plain')); if (!o || o.date === c.dataset.date) return render();
+  const others = occsOn(c.dataset.date).filter(x => x !== o), t = taskOf(o);
+  if (others.some(x => overlaps(x, o.start, o.dur))) { const s = findSlot(t, c.dataset.date, others, o.dur); if (s != null) o.start = s; }
+  o.date = c.dataset.date; save(); render();
+});
+
+/* ---------- mot de passe léger ---------- */
+const b64 = u8 => btoa(String.fromCharCode(...u8)), unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function digest(pw, salt) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
+  return b64(new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 150000 }, key, 256)));
+}
+const getAuth = () => { try { return JSON.parse(localStorage.getItem(AUTH)); } catch (e) { return null; } };
+let lockMode = 'open';
+function showLock(mode) {
+  const auth = getAuth(); lockMode = mode || (auth ? 'open' : 'create');
+  const create = lockMode !== 'open';
+  $('#lockMsg').textContent = lockMode === 'create' ? 'Premier lancement : choisissez un mot de passe pour ce navigateur.'
+    : lockMode === 'change' ? 'Choisissez le nouveau mot de passe.' : 'Entrez votre mot de passe.';
+  $('#pw2').hidden = !create; $('#pw2').required = create;
+  $('#pw1').autocomplete = create ? 'new-password' : 'current-password';
+  $('#lockBtn').textContent = create ? 'Enregistrer' : 'Ouvrir';
+  $('#lockReset').hidden = lockMode !== 'open';
+  $('#pw1').value = $('#pw2').value = ''; $('#lockErr').textContent = '';
+  $('#app').hidden = true; $('#lock').hidden = false; $('#pw1').focus();
+}
+function openApp() { sessionStorage.setItem(OPEN, '1'); $('#lock').hidden = true; $('#app').hidden = false; load(); render(); }
+$('#lockForm').onsubmit = async e => {
+  e.preventDefault();
+  const pw = $('#pw1').value, err = $('#lockErr');
+  if (!crypto.subtle) return err.textContent = 'Ce navigateur exige une connexion https pour le mot de passe.';
+  if (lockMode === 'open') {
+    const auth = getAuth();
+    if (await digest(pw, unb64(auth.salt)) !== auth.hash) return err.textContent = 'Mot de passe incorrect.';
+  } else {
+    if (pw.length < 4) return err.textContent = 'Quatre caractères au minimum.';
+    if (pw !== $('#pw2').value) return err.textContent = 'Les deux saisies diffèrent.';
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    localStorage.setItem(AUTH, JSON.stringify({ salt: b64(salt), hash: await digest(pw, salt) }));
+  }
+  openApp();
+};
+$('#resetBtn').onclick = () => {
+  if (!confirm('Effacer le mot de passe ET toutes les données du planning dans ce navigateur ?')) return;
+  [KEY, AUTH, VIEW].forEach(k => localStorage.removeItem(k)); sessionStorage.removeItem(OPEN);
+  state = { tasks: [], occs: [], settings: { avail: DEFAULT_AVAIL } }; showLock();
+};
+
+if (getAuth() && sessionStorage.getItem(OPEN)) openApp(); else showLock();
+setInterval(() => { if (!$('#app').hidden && !document.querySelector('dialog[open]') && !$('.blk.drag')) render(); }, 5 * 60 * 1000);
+</script>
+</body>
+</html>
