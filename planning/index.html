@@ -84,6 +84,15 @@
     background: color-mix(in srgb, var(--sc) 10%, transparent);
   }
   .score b { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .bar { position: relative; }
+  .score .tip {
+    display: none; position: absolute; top: calc(100% - 4px); right: 12px; z-index: 20; width: min(340px, calc(100% - 24px));
+    background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow);
+    padding: 12px 14px; font-size: 13px; font-weight: 400; line-height: 1.45; text-align: left; cursor: default;
+  }
+  .score:hover .tip, .score:focus .tip, .score:focus-within .tip { display: block; }
+  .score .tip p { margin: 0 0 6px; } .score .tip p:last-child { margin: 0; }
+  .score .tip b { font-size: inherit; }
   .s-good { --sc: var(--good); } .s-mid { --sc: var(--mid); } .s-bad { --sc: var(--bad); }
   .dot { display: inline-block; min-width: 26px; text-align: center; font-size: 11px; font-weight: 700; padding: 0 5px;
     border-radius: 99px; color: var(--sc); background: color-mix(in srgb, var(--sc) 14%, transparent); font-variant-numeric: tabular-nums; }
@@ -635,7 +644,13 @@ function renderMain(c) {
     <span class="label">${esc(label)}</span>
     <span class="sp"></span>
     ${ui.view === 'day' ? '<button data-reorder>Réordonner la journée</button>' : ''}
-    <span class="score ${scoreClass(score)}" title="Score de bien-être : baisse quand trop de tâches pénibles tombent sur la même période, remonte avec les tâches plaisantes.">Bien-être <b>${score}</b> ${scoreWord(score)}</span>
+    <span class="score ${scoreClass(score)}" tabindex="0" aria-describedby="scoreTip">Bien-être <b>${score}</b> ${scoreWord(score)}
+      <span class="tip" id="scoreTip" role="tooltip">
+        <p><b>Score de bien-être, de 0 à 100</b>, pour ${ui.view === 'day' ? 'la journée affichée' : ui.view === 'week' ? 'la semaine affichée' : 'le mois (moyenne des semaines)'}.</p>
+        <p>Il part de 100 et baisse quand les tâches pénibles s'accumulent sur la même période : plus une tâche est pénible et longue, plus elle pèse. Les tâches plaisantes en font regagner une partie.</p>
+        <p>75 et plus : serein · 50 à 74 : chargé · moins de 50 : éprouvant.</p>
+        <p>Les propositions de placement cherchent à le garder haut ; les pastilles chiffrées donnent le score de chaque jour.</p>
+      </span></span>
   </div>`;
   if (props) h += `<div class="banner"><span><b>${props} créneau${props > 1 ? 'x' : ''} proposé${props > 1 ? 's' : ''}</b> (en pointillés). Déplacez-les si besoin, puis validez.</span><span class="sp"></span>
     <button data-props="cancel">Annuler</button><button class="primary" data-props="ok">Valider</button></div>`;
