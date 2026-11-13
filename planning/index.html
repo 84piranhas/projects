@@ -209,6 +209,7 @@
       <h1>Planning du mois</h1>
     </div>
     <div class="sp"></div>
+    <span id="syncStatus" style="font-size:13px;color:var(--muted)" role="status"></span>
     <button id="btnSettings">Réglages</button>
     <button id="btnLock">Verrouiller</button>
   </div>
@@ -291,7 +292,7 @@
     <h3>Réglages</h3>
     <p class="hint">Plages disponibles : les propositions de placement ne sortent jamais de ces horaires.</p>
     <div class="av" id="avail"></div>
-    <p class="hint">Les données restent dans ce navigateur. Exportez-les pour les sauvegarder ou les transférer.</p>
+    <p class="hint">Le planning est synchronisé, chiffré par votre mot de passe : saisissez le même mot de passe sur un autre appareil pour le retrouver. L'export en garde une copie en clair.</p>
     <div class="foot" style="justify-content:flex-start">
       <button type="button" id="btnExport">Exporter</button>
       <button type="button" id="btnImport">Importer…</button>
@@ -315,7 +316,11 @@
    lancement et seule son empreinte (PBKDF2) est gardée dans le navigateur.
    ===================================================================== */
 
-const KEY = 'planning.v1', AUTH = 'planning.auth', OPEN = 'planning.open', VIEW = 'planning.view';
+const KEY = 'planning.v1', AUTH = 'planning.auth', OPEN = 'planning.open', VIEW = 'planning.view', SYNC = 'planning.sync';
+// Synchronisation : projet Supabase de Paper Soccer (clé « publishable », faite pour être publique).
+// Le planning y est stocké chiffré ; voir supabase.sql. Laisser SB_URL vide pour rester 100 % local.
+const SB_URL = 'https://qwihuysxmvowokplnwcq.supabase.co';
+const SB_KEY = 'sb_publishable_eME3tADk75-B0wSeu1G4Lw_oXhzW4F7';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -368,7 +373,69 @@ function load() {
     if (s && Array.isArray(s.tasks) && Array.isArray(s.occs)) state = { ...state, ...s, settings: { ...state.settings, ...(s.settings || {}) } };
   } catch (e) { /* données illisibles : on repart de zéro sans rien écraser avant la première sauvegarde */ }
 }
-const save = () => localStorage.setItem(KEY, JSON.stringify(state));
+const store = () => localStorage.setItem(KEY, JSON.stringify(state));
+const save = () => { store(); setMeta({ ...meta(), dirty: true }); clearTimeout(syncT); syncT = setTimeout(sync, 1200); };
+
+/* ---------- synchronisation chiffrée ----------
+   Le mot de passe donne (PBKDF2) une clé AES et l'identifiant du rang en base.
+   Le serveur ne voit qu'un bloc chiffré ; la version sert à détecter qu'un autre appareil a écrit entre-temps. */
+let vault = null, syncT, syncing = false, syncAgain = false;
+const meta = () => { try { return JSON.parse(localStorage.getItem(SYNC)) || { version: 0, dirty: false }; } catch (e) { return { version: 0, dirty: false }; } };
+const setMeta = m => localStorage.setItem(SYNC, JSON.stringify(m));
+const toB64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function deriveVault(pw) {
+  const enc = new TextEncoder(), k = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('planning-du-mois/v1'), iterations: 300000 }, k, 512));
+  return { key: toB64(bits.subarray(0, 32)), id: [...bits.subarray(32)].map(b => b.toString(16).padStart(2, '0')).join('') };
+}
+const aesKey = () => crypto.subtle.importKey('raw', fromB64(vault.key), 'AES-GCM', false, ['encrypt', 'decrypt']);
+async function seal(obj) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aesKey(), new TextEncoder().encode(JSON.stringify(obj))));
+  const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12); return toB64(out);
+}
+async function unseal(s) {
+  const u = fromB64(s);
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u.subarray(0, 12) }, await aesKey(), u.subarray(12))));
+}
+async function rpc(fn, args) {
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+  const t = await r.text(); if (!r.ok) throw new Error(t); return t ? JSON.parse(t) : null;
+}
+const setStatus = s => { $('#syncStatus').textContent = s; };
+async function sync() {
+  if (!SB_URL || !vault) return false;
+  if (syncing) { syncAgain = true; return false; }
+  syncing = true; setStatus('Synchronisation…');
+  let ok = false;
+  try {
+    for (let tries = 0; tries < 3 && !ok; tries++) {
+      const m = meta(), remote = (await rpc('planning_get', { p_id: vault.id }) || [])[0];
+      if (remote && remote.version !== m.version) {            // un autre appareil a écrit : sa version l'emporte
+        const s = await unseal(remote.data);
+        state = { tasks: s.tasks || [], occs: s.occs || [], settings: { avail: DEFAULT_AVAIL, ...(s.settings || {}) } };
+        store(); setMeta({ version: remote.version, dirty: false });
+        if (!$('.blk.drag')) { $$('dialog[open]').forEach(d => d.close()); render(); }
+        toast(m.dirty && m.version ? 'Planning mis à jour depuis un autre appareil (vos derniers changements locaux sont remplacés)' : 'Planning récupéré');
+        ok = true;
+      } else if (!remote || m.dirty) {
+        const sent = JSON.stringify(state);
+        const v = await rpc('planning_put', { p_id: vault.id, p_data: await seal(state), p_version: remote ? m.version : 0 });
+        if (v > 0) { setMeta({ version: v, dirty: JSON.stringify(state) !== sent }); ok = true; }   // -1 : conflit, on relit
+      } else ok = true;
+    }
+    setStatus(ok ? 'Synchronisé' : 'Synchronisation en attente');
+  } catch (e) {
+    setStatus(navigator.onLine === false ? 'Hors ligne · données locales' : 'Synchronisation impossible · données locales');
+    console.warn('sync', e);
+  }
+  syncing = false;
+  if (syncAgain || (ok && meta().dirty)) { syncAgain = false; clearTimeout(syncT); syncT = setTimeout(sync, 300); }
+  return ok;
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('#app').hidden) sync(); });
+addEventListener('online', () => { if (!$('#app').hidden) sync(); });
 const taskOf = o => state.tasks.find(t => t.id === o.taskId);
 const liveTasks = () => state.tasks.filter(t => !t.archived);
 const freqLabel = f => f.type === 'once' ? 'Ponctuelle'
@@ -735,6 +802,7 @@ function openOcc(id) {
 $('#fOcc').onsubmit = e => {
   e.preventDefault();
   const o = state.occs.find(x => x.id === editOccId), [hh, mm] = $('#oTime').value.split(':').map(Number);
+  if (!o) return $('#dlgOcc').close();
   o.date = $('#oDate').value; o.start = hh * 60 + mm; o.dur = Math.max(5, +$('#oDur').value || o.dur); o.done = $('#oDone').checked;
   save(); $('#dlgOcc').close(); render();
 };
@@ -866,7 +934,7 @@ let lockMode = 'open';
 function showLock(mode) {
   const auth = getAuth(); lockMode = mode || (auth ? 'open' : 'create');
   const create = lockMode !== 'open';
-  $('#lockMsg').textContent = lockMode === 'create' ? 'Premier lancement : choisissez un mot de passe pour ce navigateur.'
+  $('#lockMsg').textContent = lockMode === 'create' ? 'Premier lancement sur ce navigateur : choisissez un mot de passe, ou saisissez celui de vos autres appareils pour retrouver votre planning.'
     : lockMode === 'change' ? 'Choisissez le nouveau mot de passe.' : 'Entrez votre mot de passe.';
   $('#pw2').hidden = !create; $('#pw2').required = create;
   $('#pw1').autocomplete = create ? 'new-password' : 'current-password';
@@ -875,7 +943,10 @@ function showLock(mode) {
   $('#pw1').value = $('#pw2').value = ''; $('#lockErr').textContent = '';
   $('#app').hidden = true; $('#lock').hidden = false; $('#pw1').focus();
 }
-function openApp() { sessionStorage.setItem(OPEN, '1'); $('#lock').hidden = true; $('#app').hidden = false; load(); render(); }
+function openApp() {
+  sessionStorage.setItem(OPEN, JSON.stringify(vault));
+  $('#lock').hidden = true; $('#app').hidden = false; load(); render(); return sync();
+}
 $('#lockForm').onsubmit = async e => {
   e.preventDefault();
   const pw = $('#pw1').value, err = $('#lockErr');
@@ -884,20 +955,27 @@ $('#lockForm').onsubmit = async e => {
     const auth = getAuth();
     if (await digest(pw, unb64(auth.salt)) !== auth.hash) return err.textContent = 'Mot de passe incorrect.';
   } else {
-    if (pw.length < 4) return err.textContent = 'Quatre caractères au minimum.';
+    if (pw.length < 8) return err.textContent = 'Huit caractères au minimum.';
     if (pw !== $('#pw2').value) return err.textContent = 'Les deux saisies diffèrent.';
     const salt = crypto.getRandomValues(new Uint8Array(16));
     localStorage.setItem(AUTH, JSON.stringify({ salt: b64(salt), hash: await digest(pw, salt) }));
   }
-  openApp();
+  const old = lockMode === 'change' && vault ? vault.id : null;
+  vault = await deriveVault(pw);
+  if (old && old !== vault.id) {           // nouveau mot de passe : le planning déménage sous le nouvel identifiant
+    setMeta({ version: 0, dirty: true });
+    if (await openApp()) rpc('planning_delete', { p_id: old }).catch(() => {});
+  } else openApp();
 };
 $('#resetBtn').onclick = () => {
-  if (!confirm('Effacer le mot de passe ET toutes les données du planning dans ce navigateur ?')) return;
-  [KEY, AUTH, VIEW].forEach(k => localStorage.removeItem(k)); sessionStorage.removeItem(OPEN);
+  if (!confirm('Effacer le mot de passe ET les données du planning dans ce navigateur ? (La copie synchronisée reste accessible avec l\'ancien mot de passe.)')) return;
+  [KEY, AUTH, VIEW, SYNC].forEach(k => localStorage.removeItem(k)); sessionStorage.removeItem(OPEN); vault = null;
   state = { tasks: [], occs: [], settings: { avail: DEFAULT_AVAIL } }; showLock();
 };
 
-if (getAuth() && sessionStorage.getItem(OPEN)) openApp(); else showLock();
+try { vault = JSON.parse(sessionStorage.getItem(OPEN)); } catch (e) { vault = null; }
+if (!vault || !vault.id || !vault.key) vault = null;
+if (getAuth() && vault) openApp(); else showLock();
 setInterval(() => { if (!$('#app').hidden && !document.querySelector('dialog[open]') && !$('.blk.drag')) render(); }, 5 * 60 * 1000);
 </script>
 </body>
