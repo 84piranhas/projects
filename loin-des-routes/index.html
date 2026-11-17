@@ -73,8 +73,9 @@
   }
   h1 { font-size: 19px; margin: 0 0 2px; letter-spacing: -0.01em; }
   .sub { color: var(--muted); margin: 0 0 14px; font-size: 13px; }
-  .back { color: var(--muted); font-size: 12px; text-decoration: none; }
-  .back:hover { color: var(--text); }
+  .nav { display: flex; gap: 10px; font-size: 12px; }
+  .nav a { color: var(--muted); text-decoration: none; }
+  .nav a:hover { color: var(--text); }
 
   .section { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
   .label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
@@ -153,7 +154,7 @@
 
 <aside class="panel" id="panel">
   <button class="toggle" id="toggle" type="button">Réduire</button>
-  <a class="back" href="../">← Projets</a>
+  <div class="nav"><a href="../">← Projets</a><a href="../loin-de-tout/">Carte « Loin de tout »</a></div>
   <h1>Loin des routes</h1>
   <p class="sub">Les zones de France métropolitaine situées à plus d'une certaine distance de toute route.</p>
 
